@@ -1,0 +1,38 @@
+name: Security scan
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: docker compose build --no-cache
+
+      - name: Run Bandit
+        run: |
+          docker compose run --rm smap bandit -r python/smap/ -f json -o /tmp/bandit-report.json
+          cat /tmp/bandit-report.json
+
+      - name: Run Safety
+        run: |
+          docker compose run --rm smap safety check --file python/requirements.txt --json > /tmp/safety-report.json
+          cat /tmp/safety-report.json
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            /tmp/bandit-report.json
+            /tmp/safety-report.json

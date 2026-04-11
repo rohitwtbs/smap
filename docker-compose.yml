@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   smap:
     build:
@@ -13,4 +11,3 @@ services:
       PYTHONUNBUFFERED: '1'
       PYTHONPATH: /opt/smap/python
     tty: true
-    command: ["bash"]

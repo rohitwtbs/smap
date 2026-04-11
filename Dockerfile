@@ -20,4 +20,6 @@ COPY . /opt/smap
 RUN pip install --upgrade pip setuptools wheel && \
     pip install -r python/requirements.txt
 
+RUN pip install 'bandit<1.7' 'safety<2.0'
+
 CMD ["bash"]
