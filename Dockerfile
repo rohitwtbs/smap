@@ -18,7 +18,6 @@ RUN sed -i 's|deb.debian.org|archive.debian.org|g' /etc/apt/sources.list && \
 COPY . /opt/smap
 
 RUN pip install --upgrade pip setuptools wheel && \
-    pip install -r python/requirements.txt && \
-    python setup.py bdist_wheel
+    pip install -r python/requirements.txt
 
 CMD ["bash"]
