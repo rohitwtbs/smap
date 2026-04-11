@@ -1,0 +1,29 @@
+stages:
+  - unit
+  - integration
+
+variables:
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_DRIVER: overlay2
+
+image: docker:24.0.5
+
+services:
+  - docker:24.0.5-dind
+
+before_script:
+  - apk add --no-cache py3-pip
+  - docker info
+
+unit_tests:
+  stage: unit
+  script:
+    - docker build -t smap:ci .
+    - docker run --rm -e PYTHONPATH=/opt/smap/python smap:ci trial smap
+
+integration_tests:
+  stage: integration
+  script:
+    - docker build -t smap:ci .
+    - docker run --rm -e PYTHONPATH=/opt/smap/python smap:ci trial python.smap.archiver.test
