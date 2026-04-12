@@ -1,0 +1,13 @@
+services:
+  smap:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: smap:local
+    volumes:
+      - .:/opt/smap:cached
+    working_dir: /opt/smap
+    environment:
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: /opt/smap/python
+    tty: true
