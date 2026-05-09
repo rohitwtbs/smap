@@ -1,4 +1,15 @@
 services:
+  postgres:
+    image: postgres:12
+    environment:
+      POSTGRES_USER: archiver
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: archiver
+    volumes:
+      - ./postgres_init.sql:/docker-entrypoint-initdb.d/postgres_init.sql
+    ports:
+      - "5432:5432"
+
   smap:
     build:
       context: .
@@ -11,3 +22,7 @@ services:
       PYTHONUNBUFFERED: '1'
       PYTHONPATH: /opt/smap/python
     tty: true
+    depends_on:
+      - postgres
+    ports:
+      - "8079:8079"
