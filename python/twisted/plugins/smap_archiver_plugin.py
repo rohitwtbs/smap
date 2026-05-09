@@ -141,7 +141,7 @@ try:
     from smap.subscriber import subscribe
     from smap.ssl import SslServerContextFactory
     from smap.archiver.server import getSite
-except ImportError:
-    pass
+except ImportError as e:
+    print "Failed to load smap_archiver_plugin dependencies:", e
 else:
     serviceMaker = ArchiverServiceMaker()
