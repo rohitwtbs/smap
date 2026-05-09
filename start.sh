@@ -1,6 +1,9 @@
 #!/bin/bash
+# Clear twisted plugin cache (in case of old broken cache)
+rm -f python/twisted/plugins/dropin.cache
+
 # Start readingdb daemon in the background
-readingdb &
+reading-server &
 # Wait for readingdb to start
 sleep 2
 # Start smap archiver
