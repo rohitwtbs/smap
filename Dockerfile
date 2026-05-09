@@ -13,6 +13,9 @@ RUN sed -i 's|deb.debian.org|archive.debian.org|g' /etc/apt/sources.list && \
     python-dev \
     libssl-dev \
     libpq-dev \
+    python-scipy \
+    python-numpy \
+    python-psycopg2 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /opt/smap
@@ -22,4 +25,4 @@ RUN pip install --upgrade pip setuptools wheel && \
 
 RUN pip install 'bandit<1.7' 'safety<2.0'
 
-CMD ["bash"]
+CMD ["twistd", "-n", "smap-archiver", "python/conf/archiver.ini"]
