@@ -1,0 +1,10 @@
+modules = ["python-3.12", "java-graalvm22.3"]
+[agent]
+expertMode = true
+stack = "BEST_EFFORT_FALLBACK"
+
+[nix]
+channel = "stable-25_05"
+
+[deployment]
+deploymentTarget = "cloudrun"

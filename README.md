@@ -1,6 +1,9 @@
 # SMAP
 https://softwaredefinedbuildings.github.io/smap/
 
+## 🐳 Docker Quick Start (Recommended)
+**For the fastest way to get a full sMAP stack running with TimescaleDB, see [DOCKER_README.md](DOCKER_README.md).**
+
 ## Getting Started
 
 ### Installation

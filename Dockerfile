@@ -5,21 +5,37 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /opt/smap
 
+# Use pre-compiled Debian packages for Python 2.7 to avoid slow/failing pip builds.
+# Buster is EOL, so we use the archive mirrors.
 RUN sed -i 's|deb.debian.org|archive.debian.org|g' /etc/apt/sources.list && \
     sed -i 's|security.debian.org|archive.debian.org|g' /etc/apt/sources.list && \
     sed -i '/buster-updates/d' /etc/apt/sources.list && \
-    apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    python-dev \
-    libssl-dev \
-    libpq-dev \
+    apt-get -o Acquire::Check-Valid-Until=false update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    git \
+    postgresql-client \
+    python-twisted \
+    python-psycopg2 \
+    python-avro \
+    python-dateutil \
+    python-configobj \
+    python-ply \
+    python-numpy \
+    python-autobahn \
+    python-openssl \
+    && mkdir -p /etc/smap \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /opt/smap
 
-RUN pip install --upgrade pip setuptools wheel && \
-    pip install -r python/requirements.txt
+# Create VERSION file so setup.py doesn't fail due to missing .git
+RUN echo "2.0-docker" > VERSION
 
-RUN pip install 'bandit<1.7' 'safety<2.0'
+# Install remaining small/pure-python dependencies
+RUN pip install --upgrade "pip<21.0" "setuptools<45.0" wheel && \
+    pip install "lockfile"
+
+# Install the smap package
+RUN cd python && python setup.py install
 
 CMD ["bash"]
