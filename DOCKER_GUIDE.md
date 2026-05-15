@@ -157,8 +157,9 @@ This is the "Task 1" path from `python/doc/en/2.0/tutorial.rst`.
 # 1) Build
 docker compose build          # or: docker-compose build
 
-# 2) Open an interactive shell in the container
-docker compose run --rm --service-ports -p 8080:8080 smap bash
+# 2) Open an interactive shell in the container (publish 8080 ad-hoc).
+#    Note: do NOT combine --service-ports with -p; they are mutually exclusive.
+docker compose run --rm -p 8080:8080 smap bash
 
 # 3) Inside the container — sanity check that the library imports and
 #    the twistd plugin is registered
