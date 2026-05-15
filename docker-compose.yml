@@ -1,13 +1,55 @@
 services:
-  smap:
+  postgres:
+    image: timescale/timescaledb:latest-pg14
+    environment:
+      POSTGRES_USER: archiver
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: archiver
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/00-hstore.sql:ro
+    ports: ["5432:5432"]
+
+  archiver:
     build:
       context: .
       dockerfile: Dockerfile
     image: smap:local
+    depends_on:
+      - postgres
     volumes:
       - .:/opt/smap:cached
+      - ./docker/archiver.ini:/etc/smap/archiver.ini:ro
     working_dir: /opt/smap
     environment:
-      PYTHONUNBUFFERED: '1'
+      PYTHONUNBUFFERED: "1"
       PYTHONPATH: /opt/smap/python
-    tty: true
+    ports:
+      - "8079:8079"
+    command: >
+      bash -c "
+        until pg_isready -h postgres -U archiver; do sleep 1; done;
+        twistd -n smap-archiver /etc/smap/archiver.ini
+      "
+
+  source:
+    image: smap:local
+    depends_on:
+      - archiver
+    volumes:
+      - .:/opt/smap:cached
+      - ./docker/example.ini:/etc/smap/example.ini:ro
+    working_dir: /opt/smap
+    environment:
+      PYTHONUNBUFFERED: "1"
+      PYTHONPATH: /opt/smap/python
+    ports:
+      - "8081:8080"
+    command: >
+      bash -c "
+        sleep 5;
+        twistd -n smap /etc/smap/example.ini
+      "
+
+volumes:
+  pgdata:
