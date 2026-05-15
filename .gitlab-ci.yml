@@ -1,6 +1,6 @@
 stages:
-  - unit
-  - integration
+  - build
+  - test
 
 variables:
   DOCKER_HOST: tcp://docker:2375
@@ -13,17 +13,31 @@ services:
   - docker:24.0.5-dind
 
 before_script:
-  - apk add --no-cache py3-pip
   - docker info
 
-unit_tests:
-  stage: unit
+# Build the test image once (re-used via local cache in most runners)
+build:
+  stage: build
   script:
     - docker build -t smap:ci .
-    - docker run --rm -e PYTHONPATH=/opt/smap/python smap:ci trial smap
 
-integration_tests:
-  stage: integration
+# Run core library and operator unit tests
+unit_tests:
+  stage: test
   script:
     - docker build -t smap:ci .
-    - docker run --rm -e PYTHONPATH=/opt/smap/python smap:ci trial python.smap.archiver.test
+    - docker run --rm smap:ci trial smap.test smap.ops.test
+
+# Run archiver-specific tests (often require more setup, but tscache is pure unit)
+archiver_tests:
+  stage: test
+  script:
+    - docker build -t smap:ci .
+    - docker run --rm smap:ci trial smap.archiver.test
+
+# Verify schema validation logic
+schema_tests:
+  stage: test
+  script:
+    - docker build -t smap:ci .
+    - docker run --rm smap:ci bash -c "cd schema/test && python test.py"

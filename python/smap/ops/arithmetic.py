@@ -38,7 +38,6 @@ support operation in either dimension (where possible).
 
 from smap import operators
 import numpy as np
-from scipy import stats
 
 def vector_operator_factory(name, op, constructors=[()], block_streaming=True):
     """Make a new vector operator class (type) from its name and operator"""
@@ -116,7 +115,7 @@ var = _op_from_compressive_op('var', np.var)
 std = _op_from_compressive_op('std', np.std)
 prod = _op_from_compressive_op('prod', np.prod)
 
-nanmean = _op_from_compressive_op('nanmean', stats.nanmean)
+nanmean = _op_from_compressive_op('nanmean', np.nanmean)
 
 # ufuncs operate element-by-element on arrays
 #  these operators trivially support streaming

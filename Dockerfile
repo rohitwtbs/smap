@@ -21,6 +21,8 @@ RUN sed -i 's|deb.debian.org|archive.debian.org|g' /etc/apt/sources.list && \
     python-configobj \
     python-ply \
     python-numpy \
+    python-scipy \
+    python-pycurl \
     python-autobahn \
     python-openssl \
     && mkdir -p /etc/smap \

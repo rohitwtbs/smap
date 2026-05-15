@@ -239,6 +239,8 @@ class TestDiskLog(unittest.TestCase):
             shutil.rmtree("testdir")
 
     def test_unwritable_file(self):
+        if os.getuid() == 0:
+            raise unittest.SkipTest("Skipping unwritable file test because we are root")
         try:
             d = DiskLog("testdir")
             os.chmod(os.path.abspath("testdir"), 0000)

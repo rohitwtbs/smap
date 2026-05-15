@@ -883,7 +883,8 @@ def parse_opex(exp):
         opex_parser
     except NameError:
         opex_parser = yacc.yacc(start="formula_pipe", 
-                                tabmodule='opex_tab.py',
+                                tabmodule='opex_tab',
+                                outputdir=os.path.dirname(__file__),
                                 debugfile='/dev/null',
                                 debuglog=logging.getLogger('ply-debug'),
                                 errorlog=logging.getLogger('ply-errors'))

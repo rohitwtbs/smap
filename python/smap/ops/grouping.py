@@ -237,7 +237,7 @@ class GroupByDatetimeField(Operator):
                     region=(None, None)):
         # print "PRCESSING"
         tic = time.time()
-        if prev == None:
+        if prev is None:
             prev = np.copy(data)
             prev_datetimes = MaskedDTList(prev[:, 0] / 1000, tz)
         else:

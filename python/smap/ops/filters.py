@@ -54,7 +54,7 @@ Arg (optional, default=0.9): alpha.
         return null, {'alpha': alpha, 'prev': prev}
 
     inputs = np.array(inputs, dtype=float)
-    if prev == None:
+    if prev is None:
         prev = inputs[0][1]
 
     inputs[0][1] = alpha * prev + (1 - alpha) * inputs[0][1]
