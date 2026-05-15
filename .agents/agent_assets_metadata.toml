@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "txSMu8olWaNDcXXtuJMxu"
+uri = "file://DOCKER_GUIDE.md"
+type = "text"
+title = "sMAP Docker Build & Run Guide"
