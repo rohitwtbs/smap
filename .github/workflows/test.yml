@@ -1,0 +1,29 @@
+name: Run Tests
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build test image
+        run: docker build -t smap:ci .
+
+      - name: Run Core & Operator Unit Tests
+        run: docker run --rm smap:ci trial smap.test smap.ops.test
+
+      - name: Run Archiver Tests
+        run: docker run --rm smap:ci trial smap.archiver.test
+
+      - name: Run Schema Validation
+        run: docker run --rm smap:ci bash -c "cd schema/test && python test.py"
