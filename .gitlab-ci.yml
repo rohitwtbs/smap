@@ -1,5 +1,6 @@
 stages:
   - build
+  - security
   - test
 
 variables:
@@ -15,11 +16,26 @@ services:
 before_script:
   - docker info
 
-# Build the test image once (re-used via local cache in most runners)
+# Build the test image once
 build:
   stage: build
   script:
     - docker build -t smap:ci .
+
+# Run security scans
+security_scan:
+  stage: security
+  script:
+    - docker build -t smap:ci .
+    - |
+      # B105, B106, B107 (hardcoded password checks) cause internal errors in Python 2.7
+      docker run --rm smap:ci bandit -r python/smap/ -f json -o bandit-report.json -s B105,B106,B107 || true
+    - docker run --rm smap:ci safety check --file python/requirements.txt --json > safety-report.json || true
+  artifacts:
+    when: always
+    paths:
+      - bandit-report.json
+      - safety-report.json
 
 # Run core library and operator unit tests
 unit_tests:
@@ -28,7 +44,7 @@ unit_tests:
     - docker build -t smap:ci .
     - docker run --rm smap:ci trial smap.test smap.ops.test
 
-# Run archiver-specific tests (often require more setup, but tscache is pure unit)
+# Run archiver-specific tests
 archiver_tests:
   stage: test
   script:
