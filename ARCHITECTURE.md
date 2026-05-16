@@ -22,7 +22,6 @@ This document provides a comprehensive architectural overview of the sMAP (Simpl
 
 ```mermaid
 graph TD
-...
     subgraph "External World"
         Sensors[Sensors/Devices]
         Actuators[Actuators]
@@ -35,8 +34,8 @@ graph TD
     end
 
     subgraph "sMAP Archiver"
-        Ingestion[/add Endpoint]
-        QueryAPI[/api/query Endpoint]
+        Ingestion["/add Endpoint"]
+        QueryAPI["/api/query Endpoint"]
         Republisher[Republisher]
     end
 
