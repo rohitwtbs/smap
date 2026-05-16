@@ -21,8 +21,8 @@ jobs:
 
       - name: Run Bandit
         run: |
-          # B105 (hardcoded_password_default) causes internal errors in Python 2.7 with certain AST structures
-          docker compose run --rm --no-deps smap bandit -r python/smap/ -f json -o /tmp/bandit-report.json -s B105
+          # B105, B106, B107 (hardcoded password checks) cause internal errors in Python 2.7 with certain AST structures
+          docker compose run --rm --no-deps smap bandit -r python/smap/ -f json -o /tmp/bandit-report.json -s B105,B106,B107
           cat /tmp/bandit-report.json
 
       - name: Run Safety
