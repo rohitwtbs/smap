@@ -16,7 +16,6 @@ RUN sed -i 's|deb.debian.org|archive.debian.org|g' /etc/apt/sources.list && \
     postgresql-client \
     python-twisted \
     python-psycopg2 \
-    python-avro \
     python-dateutil \
     python-configobj \
     python-ply \
@@ -35,7 +34,7 @@ RUN echo "2.0-docker" > VERSION
 
 # Install remaining small/pure-python dependencies
 RUN pip install --upgrade "pip<21.0" "setuptools<45.0" wheel && \
-    pip install "lockfile"
+    pip install "lockfile" "avro>=1.6.3"
 
 # Install the smap package
 RUN cd python && python setup.py install
