@@ -32,7 +32,7 @@ services:
         twistd -n smap-archiver /etc/smap/archiver.ini
       "
 
-  source:
+  smap:
     image: smap:local
     depends_on:
       - archiver

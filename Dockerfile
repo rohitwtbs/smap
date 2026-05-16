@@ -40,4 +40,7 @@ RUN pip install --upgrade "pip<21.0" "setuptools<45.0" wheel && \
 # Install the smap package
 RUN cd python && python setup.py install
 
+# Install security tools for CI/Dev (compat with Python 2.7)
+RUN pip install "bandit<1.7.0" "safety<1.10.0"
+
 CMD ["bash"]

@@ -21,12 +21,12 @@ jobs:
 
       - name: Run Bandit
         run: |
-          docker compose run --rm smap bandit -r python/smap/ -f json -o /tmp/bandit-report.json
+          docker compose run --rm --no-deps smap bandit -r python/smap/ -f json -o /tmp/bandit-report.json
           cat /tmp/bandit-report.json
 
       - name: Run Safety
         run: |
-          docker compose run --rm smap safety check --file python/requirements.txt --json > /tmp/safety-report.json
+          docker compose run --rm --no-deps smap safety check --file python/requirements.txt --json > /tmp/safety-report.json
           cat /tmp/safety-report.json
 
       - name: Upload security reports
