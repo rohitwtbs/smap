@@ -14,16 +14,11 @@ RUN sed -i 's|deb.debian.org|archive.debian.org|g' /etc/apt/sources.list && \
     ca-certificates \
     git \
     postgresql-client \
-    python-twisted \
-    python-psycopg2 \
-    python-dateutil \
-    python-configobj \
-    python-ply \
-    python-numpy \
-    python-scipy \
-    python-pycurl \
-    python-autobahn \
-    python-openssl \
+    build-essential \
+    libpq-dev \
+    python-dev \
+    libcurl4-openssl-dev \
+    libssl-dev \
     && mkdir -p /etc/smap \
     && rm -rf /var/lib/apt/lists/*
 
@@ -32,9 +27,11 @@ COPY . /opt/smap
 # Create VERSION file so setup.py doesn't fail due to missing .git
 RUN echo "2.0-docker" > VERSION
 
-# Install remaining small/pure-python dependencies
+# Install dependencies via pip to ensure they are in the same environment
 RUN pip install --upgrade "pip<21.0" "setuptools<45.0" wheel && \
-    pip install "lockfile" "avro>=1.6.3"
+    pip install "lockfile" "avro>=1.6.3" "twisted<18.0" "psycopg2-binary" \
+                "python-dateutil" "configobj" "ply" "numpy" "scipy" \
+                "pycurl" "autobahn" "pyopenssl"
 
 # Install the smap package
 RUN cd python && python setup.py install
