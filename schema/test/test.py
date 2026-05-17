@@ -16,6 +16,7 @@ class SmapSchemas:
         "UnitofTime", "Duration", 
         "ReadingType", "ReadingValue",
 
+        'BACnetMetadata',
         'InstrumentMetadata', 'LocationMetadata', 'OperatorMetadata',
         'Job',
         # timeseries subobjects
