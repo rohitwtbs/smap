@@ -42,14 +42,14 @@ unit_tests:
   stage: test
   script:
     - docker build -t smap:ci .
-    - docker run --rm smap:ci trial smap.test smap.ops.test
+    - docker run --rm smap:ci python -m twisted.trial smap.test smap.ops.test
 
 # Run archiver-specific tests
 archiver_tests:
   stage: test
   script:
     - docker build -t smap:ci .
-    - docker run --rm smap:ci trial smap.archiver.test
+    - docker run --rm smap:ci python -m twisted.trial smap.archiver.test
 
 # Verify schema validation logic
 schema_tests:

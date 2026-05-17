@@ -20,10 +20,10 @@ jobs:
         run: docker build -t smap:ci .
 
       - name: Run Core & Operator Unit Tests
-        run: docker run --rm smap:ci trial smap.test smap.ops.test
+        run: docker run --rm smap:ci python -m twisted.trial smap.test smap.ops.test
 
       - name: Run Archiver Tests
-        run: docker run --rm smap:ci trial smap.archiver.test
+        run: docker run --rm smap:ci python -m twisted.trial smap.archiver.test
 
       - name: Run Schema Validation
         run: docker run --rm smap:ci bash -c "cd schema/test && python test.py"
