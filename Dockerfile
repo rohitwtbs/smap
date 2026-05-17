@@ -29,7 +29,8 @@ RUN echo "2.0-docker" > VERSION
 
 # Install dependencies via pip to ensure they are in the same environment
 RUN pip install --upgrade "pip<21.0" "setuptools<45.0" wheel && \
-    pip install "lockfile" "avro>=1.6.3" "twisted<18.0" "psycopg2-binary" \
+    pip install "typing" "incremental<21.3.0" "zope.interface<5.0.0" && \
+    pip install "lockfile" "avro<1.10.0" "twisted<18.0" "psycopg2-binary" \
                 "python-dateutil" "configobj" "ply" "numpy" "scipy" \
                 "pycurl" "autobahn" "pyopenssl"
 
