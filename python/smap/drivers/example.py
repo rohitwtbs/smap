@@ -41,7 +41,7 @@ class Driver(SmapDriver):
     def setup(self, opts):
         self.add_timeseries('/sensor0', 'V')
         self.set_metadata('/sensor0', {
-            'Instrument/ModelName' : 'ExampleInstrument'
+            'Instrument/Model' : 'ExampleInstrument'
             })
         self.counter = int(opts.get('StartVal', 0))
         self.rate = float(opts.get('Rate', 1))

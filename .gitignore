@@ -19,3 +19,10 @@ Thumbs.db
 # python virtualenv
 venv
 python/build
+
+# Haskell / Cabal
+dist-newstyle/
+.stack-work/
+cabal.project.local*
+.ghc.environment.*
+ghc.internal

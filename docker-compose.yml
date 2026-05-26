@@ -12,28 +12,21 @@ services:
 
   archiver:
     build:
-      context: .
+      context: ./hs-archiver
       dockerfile: Dockerfile
-    image: smap:local
+    image: smap-archiver:haskell
     depends_on:
       - postgres
-    volumes:
-      - .:/opt/smap:cached
-      - ./docker/archiver.ini:/etc/smap/archiver.ini:ro
-    working_dir: /opt/smap
     environment:
-      PYTHONUNBUFFERED: "1"
-      PYTHONPATH: /opt/smap/python
+      DB_CONN: "host=postgres port=5432 user=archiver dbname=archiver password=password"
     ports:
       - "8079:8079"
-    command: >
-      bash -c "
-        until pg_isready -h postgres -U archiver; do sleep 1; done;
-        twistd -n smap-archiver /etc/smap/archiver.ini
-      "
 
   smap:
     image: smap:local
+    build:
+      context: .
+      dockerfile: Dockerfile
     depends_on:
       - archiver
     volumes:
