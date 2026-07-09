@@ -30,6 +30,10 @@ author = "agent"
 task = "workflow.run"
 args = "sMAP Archiver"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Example Driver"
+
 [[workflows.workflow]]
 name = "sMAP Archiver"
 author = "agent"
@@ -41,3 +45,15 @@ waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow]]
+name = "Example Driver"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./start-example-driver.sh"
+waitForPort = 8080
+
+[workflows.workflow.metadata]
+outputType = "console"
