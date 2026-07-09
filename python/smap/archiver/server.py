@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 import copy
+import os
 
 from twisted.internet import reactor, defer
 from twisted.web import resource, server, static
@@ -146,5 +147,12 @@ def getSite(db,
         root.putChild(b'api', api.Api(db))
     if 'static' in resources:
         root.putChild(b'static', static.File('static'))
+
+    # serve the dashboard on the base page
+    dashboard_path = os.path.join(os.path.dirname(__file__),
+                                  'static', 'dashboard.html')
+    if os.path.exists(dashboard_path):
+        root.putChild(b'', static.File(dashboard_path,
+                                       defaultType='text/html'))
     return server.Site(root)
 

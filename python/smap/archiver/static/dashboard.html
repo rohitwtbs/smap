@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sMAP Archiver Dashboard</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel2: #273449;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent2: #34d399;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 20px; margin: 0; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  main { padding: 24px 28px; max-width: 1200px; margin: 0 auto; }
+  .stats { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 20px;
+    min-width: 140px;
+  }
+  .card .num { font-size: 26px; font-weight: 600; color: var(--accent); }
+  .card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  h2 { font-size: 15px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin: 26px 0 10px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 14px;
+  }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; background: var(--panel2); }
+  tr:last-child td { border-bottom: none; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--panel2); }
+  tbody tr.selected { background: #16324a; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
+  .value { color: var(--accent2); font-weight: 600; }
+  #chart-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-top: 10px;
+  }
+  #chart-title { font-size: 14px; margin-bottom: 4px; }
+  #chart-sub { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  svg { width: 100%; height: 260px; display: block; }
+  .empty { color: var(--muted); padding: 30px; text-align: center; }
+  .err { color: #f87171; }
+  footer { padding: 18px 28px; color: var(--muted); font-size: 12px; }
+  a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>sMAP Archiver</h1>
+  <span class="sub">live time-series dashboard &mdash; refreshes every 10s</span>
+  <span class="sub" id="status"></span>
+</header>
+<main>
+  <div class="stats">
+    <div class="card"><div class="num" id="stat-streams">&ndash;</div><div class="label">Streams</div></div>
+    <div class="card"><div class="num" id="stat-sources">&ndash;</div><div class="label">Sources</div></div>
+    <div class="card"><div class="num" id="stat-latest">&ndash;</div><div class="label">Last reading</div></div>
+  </div>
+
+  <h2>Streams <span style="text-transform:none;letter-spacing:0;font-weight:400">(click a row to plot)</span></h2>
+  <div id="streams-wrap"><div class="empty">Loading&hellip;</div></div>
+
+  <h2>Chart</h2>
+  <div id="chart-panel">
+    <div id="chart-title">No stream selected</div>
+    <div id="chart-sub">Select a stream above to plot its most recent readings.</div>
+    <svg id="chart" viewBox="0 0 900 260" preserveAspectRatio="none"></svg>
+  </div>
+</main>
+<footer>
+  Query API: <span class="mono">POST /api/query</span> &middot; Ingest: <span class="mono">POST /add/&lt;key&gt;</span>
+</footer>
+
+<script>
+"use strict";
+let streams = [];
+let latest = {};          // uuid -> [ts, val]
+let selectedUuid = null;
+
+function query(q) {
+  return fetch('/api/query', { method: 'POST', body: q })
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+}
+
+function fmtTime(ts) {
+  if (ts == null) return '\u2013';
+  return new Date(ts).toLocaleString();
+}
+
+function fmtAgo(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 5) return 'just now';
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function renderStreams() {
+  const wrap = document.getElementById('streams-wrap');
+  if (!streams.length) {
+    wrap.innerHTML = '<div class="empty">No streams yet. Send data with a driver or POST to /add/&lt;key&gt;.</div>';
+    return;
+  }
+  let html = '<table><thead><tr><th>Path</th><th>Source</th><th>Unit</th><th>Latest value</th><th>When</th><th>uuid</th></tr></thead><tbody>';
+  for (const s of streams) {
+    const meta = s.Metadata || {};
+    const props = s.Properties || {};
+    const l = latest[s.uuid];
+    html += '<tr data-uuid="' + esc(s.uuid) + '"' +
+            (s.uuid === selectedUuid ? ' class="selected"' : '') + '>' +
+      '<td>' + esc(s.Path || '') + '</td>' +
+      '<td>' + esc(meta.SourceName || '') + '</td>' +
+      '<td>' + esc(props.UnitofMeasure || '') + '</td>' +
+      '<td class="value">' + (l ? esc(l[1]) : '\u2013') + '</td>' +
+      '<td>' + (l ? esc(fmtAgo(l[0])) : '\u2013') + '</td>' +
+      '<td class="mono">' + esc(s.uuid) + '</td>' +
+      '</tr>';
+  }
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('tbody tr').forEach(tr => {
+    tr.addEventListener('click', () => selectStream(tr.getAttribute('data-uuid')));
+  });
+}
+
+function renderStats() {
+  document.getElementById('stat-streams').textContent = streams.length;
+  const sources = new Set(streams.map(s => (s.Metadata || {}).SourceName || '?'));
+  document.getElementById('stat-sources').textContent = streams.length ? sources.size : 0;
+  let newest = null;
+  for (const u in latest) {
+    if (!newest || latest[u][0] > newest) newest = latest[u][0];
+  }
+  document.getElementById('stat-latest').textContent = newest ? fmtAgo(newest) : '\u2013';
+}
+
+function drawChart(readings, stream) {
+  const svg = document.getElementById('chart');
+  const title = document.getElementById('chart-title');
+  const sub = document.getElementById('chart-sub');
+  svg.innerHTML = '';
+  if (!readings || !readings.length) {
+    title.textContent = stream ? (stream.Path || stream.uuid) : 'No stream selected';
+    sub.textContent = 'No data points found for this stream.';
+    return;
+  }
+  readings = readings.filter(r => Number.isFinite(Number(r[1])))
+                     .sort((a, b) => a[0] - b[0]);
+  if (!readings.length) {
+    title.textContent = stream ? (stream.Path || stream.uuid) : 'No stream selected';
+    sub.textContent = 'No numeric data points found for this stream.';
+    return;
+  }
+  const unit = ((stream || {}).Properties || {}).UnitofMeasure || '';
+  title.textContent = (stream.Path || stream.uuid) + (unit ? ' (' + unit + ')' : '');
+  sub.textContent = readings.length + ' points \u00b7 ' +
+    fmtTime(readings[0][0]) + ' \u2192 ' + fmtTime(readings[readings.length - 1][0]);
+
+  const W = 900, H = 260, PAD_L = 56, PAD_R = 12, PAD_T = 14, PAD_B = 26;
+  const xs = readings.map(r => r[0]);
+  const ys = readings.map(r => Number(r[1]));
+  const xmin = Math.min(...xs), xmax = Math.max(...xs);
+  let ymin = Math.min(...ys), ymax = Math.max(...ys);
+  if (ymin === ymax) { ymin -= 1; ymax += 1; }
+  const yr = ymax - ymin;
+  ymin -= yr * 0.05; ymax += yr * 0.05;
+
+  const px = t => xmax === xmin ? (PAD_L + (W - PAD_L - PAD_R) / 2)
+    : PAD_L + (t - xmin) / (xmax - xmin) * (W - PAD_L - PAD_R);
+  const py = v => PAD_T + (1 - (v - ymin) / (ymax - ymin)) * (H - PAD_T - PAD_B);
+
+  const NS = 'http://www.w3.org/2000/svg';
+  // horizontal gridlines + y labels
+  for (let i = 0; i <= 4; i++) {
+    const v = ymin + (ymax - ymin) * i / 4;
+    const y = py(v);
+    const line = document.createElementNS(NS, 'line');
+    line.setAttribute('x1', PAD_L); line.setAttribute('x2', W - PAD_R);
+    line.setAttribute('y1', y); line.setAttribute('y2', y);
+    line.setAttribute('stroke', '#334155'); line.setAttribute('stroke-width', '1');
+    svg.appendChild(line);
+    const label = document.createElementNS(NS, 'text');
+    label.setAttribute('x', PAD_L - 8); label.setAttribute('y', y + 4);
+    label.setAttribute('text-anchor', 'end');
+    label.setAttribute('fill', '#94a3b8'); label.setAttribute('font-size', '11');
+    label.textContent = Number(v.toPrecision(4));
+    svg.appendChild(label);
+  }
+  // x labels: first & last
+  const xl = document.createElementNS(NS, 'text');
+  xl.setAttribute('x', PAD_L); xl.setAttribute('y', H - 8);
+  xl.setAttribute('fill', '#94a3b8'); xl.setAttribute('font-size', '11');
+  xl.textContent = new Date(xmin).toLocaleTimeString();
+  svg.appendChild(xl);
+  const xr = document.createElementNS(NS, 'text');
+  xr.setAttribute('x', W - PAD_R); xr.setAttribute('y', H - 8);
+  xr.setAttribute('text-anchor', 'end');
+  xr.setAttribute('fill', '#94a3b8'); xr.setAttribute('font-size', '11');
+  xr.textContent = new Date(xmax).toLocaleTimeString();
+  svg.appendChild(xr);
+  // the line
+  const pts = readings.map(r => px(r[0]).toFixed(1) + ',' + py(Number(r[1])).toFixed(1)).join(' ');
+  const poly = document.createElementNS(NS, 'polyline');
+  poly.setAttribute('points', pts);
+  poly.setAttribute('fill', 'none');
+  poly.setAttribute('stroke', '#38bdf8');
+  poly.setAttribute('stroke-width', '2');
+  svg.appendChild(poly);
+  // last point marker
+  const last = readings[readings.length - 1];
+  const dot = document.createElementNS(NS, 'circle');
+  dot.setAttribute('cx', px(last[0])); dot.setAttribute('cy', py(Number(last[1])));
+  dot.setAttribute('r', '3.5'); dot.setAttribute('fill', '#34d399');
+  svg.appendChild(dot);
+}
+
+const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+function selectStream(uuid) {
+  if (!UUID_RE.test(uuid)) return;
+  selectedUuid = uuid;
+  renderStreams();
+  const stream = streams.find(s => s.uuid === uuid);
+  query("select data before now limit 200 where uuid = '" + uuid + "'")
+    .then(res => {
+      const readings = (res[0] || {}).Readings || [];
+      drawChart(readings, stream);
+    })
+    .catch(e => {
+      document.getElementById('chart-sub').innerHTML =
+        '<span class="err">Failed to load data: ' + esc(e.message) + '</span>';
+    });
+}
+
+function refresh() {
+  const status = document.getElementById('status');
+  query('select *')
+    .then(res => {
+      streams = res.sort((a, b) => (a.Path || '').localeCompare(b.Path || ''));
+      return query('select data before now limit 1 where has uuid');
+    })
+    .then(res => {
+      latest = {};
+      for (const item of res) {
+        if (item.Readings && item.Readings.length) latest[item.uuid] = item.Readings[0];
+      }
+      renderStats();
+      renderStreams();
+      if (selectedUuid && streams.some(s => s.uuid === selectedUuid)) {
+        selectStream(selectedUuid);
+      }
+      status.textContent = 'updated ' + new Date().toLocaleTimeString();
+      status.className = 'sub';
+    })
+    .catch(e => {
+      status.textContent = 'error: ' + e.message;
+      status.className = 'sub err';
+    });
+}
+
+refresh();
+setInterval(refresh, 10000);
+</script>
+</body>
+</html>

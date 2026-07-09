@@ -337,7 +337,7 @@ class Api(resource.Resource):
             log.err("Failing query: " + str(query))
             log.err()
             setResponseCode(request, e, 400)
-            return str(e)
+            return str(e).encode('utf-8')
         else:
 
             if not query.strip().startswith('apply'):

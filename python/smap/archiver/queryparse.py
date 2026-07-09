@@ -867,6 +867,8 @@ def p_comparator(t):
     t[0] = t[1]
     
 def p_error(t):
+    if t is None:
+        raise qg.QueryException("Syntax error: unexpected end of query", 400)
     raise qg.QueryException("Syntax error at '%s'" % t.value, 400)
 
 smapql_parser = yacc.yacc(tabmodule='arq_tab',
