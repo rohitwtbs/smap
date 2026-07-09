@@ -31,14 +31,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 import time
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import datetime
 from string import capwords
 
 from smap.drivers.scraper import ScraperDriver
 from smap.contrib import dtutil
 
-urllib2.install_opener(urllib2.build_opener())
+urllib.request.install_opener(urllib.request.build_opener())
 
 class NYIsoDriver(ScraperDriver):
     """Periodically scrape data from NYISO and publish it as sMAP feeds
@@ -101,7 +101,7 @@ class NYIsoDriver(ScraperDriver):
         return self.nyiso_out
 
     def actual_load(self):
-        actload = urllib2.urlopen(self.urlgen('http://mis.nyiso.com/public/'
+        actload = urllib.request.urlopen(self.urlgen('http://mis.nyiso.com/public/'
                                                 'csv/pal/', 'pal.csv', 0))
         lines = actload.readlines()
         actload.close()
@@ -113,7 +113,7 @@ class NYIsoDriver(ScraperDriver):
             if len(temp[len(temp)-1]) == 0:
                 continue
             point = [self.parse_time(temp[0], 0), float(temp[4])]
-            if temp[2] in self.nyiso_out["Load"].keys():
+            if temp[2] in list(self.nyiso_out["Load"].keys()):
                 self.nyiso_out["Load"][temp[2]]["Actual"].append(point)
             else:
                 self.nyiso_out["Load"][temp[2]] = {}
@@ -121,10 +121,10 @@ class NYIsoDriver(ScraperDriver):
 
     def pred_load(self):
         try:
-            predload = urllib2.urlopen(self.urlgen('http://mis.nyiso.com/'
+            predload = urllib.request.urlopen(self.urlgen('http://mis.nyiso.com/'
                                       'public/csv/isolf/', 'isolf.csv', 86400))
         except:
-            predload = urllib2.urlopen(self.urlgen('http://mis.nyiso.com/'
+            predload = urllib.request.urlopen(self.urlgen('http://mis.nyiso.com/'
                                       'public/csv/isolf/', 'isolf.csv', 0))
         lines = predload.readlines()
         predload.close()
@@ -135,7 +135,7 @@ class NYIsoDriver(ScraperDriver):
             if place == self.match("NYISO"):
                 col[col.index(self.match("NYISO"))] = "Total Area"
                 place = "Total Area"
-            if place not in self.nyiso_out["Load"].keys():
+            if place not in list(self.nyiso_out["Load"].keys()):
                 self.nyiso_out["Load"][place] = { "Forecasted": [] }
             else:
                 self.nyiso_out["Load"][place]["Forecasted"] = []
@@ -149,7 +149,7 @@ class NYIsoDriver(ScraperDriver):
                 self.inf_iterate(col)
 
     def int_actual_load(self):
-        actload = urllib2.urlopen(self.urlgen('http://mis.nyiso.com/public/csv/'
+        actload = urllib.request.urlopen(self.urlgen('http://mis.nyiso.com/public/csv/'
                                     'palIntegrated/','palIntegrated.csv', 0))
         lines = actload.readlines()
         actload.close()
@@ -161,8 +161,8 @@ class NYIsoDriver(ScraperDriver):
             if len(temp[len(temp)-1]) == 0:
                 continue
             point = [self.parse_time(temp[0], 0), float(temp[4])]
-            if temp[2] in self.nyiso_out["Load"].keys():
-                k = self.nyiso_out["Load"][temp[2]].keys()
+            if temp[2] in list(self.nyiso_out["Load"].keys()):
+                k = list(self.nyiso_out["Load"][temp[2]].keys())
                 if "Integrated Actual" in k:
                     self.nyiso_out["Load"][temp[2]]["Integrated Actual"].append(
                                                                         point)
@@ -175,10 +175,10 @@ class NYIsoDriver(ScraperDriver):
     def forecast_lmp(self):
         #try except to handle inconsistent next-day upload time
         try:
-            actload = urllib2.urlopen(self.urlgen('http://mis.nyiso.com/public'
+            actload = urllib.request.urlopen(self.urlgen('http://mis.nyiso.com/public'
                                     '/csv/damlbmp/','damlbmp_zone.csv', 86400))
         except:
-            actload = urllib2.urlopen(self.urlgen('http://mis.nyiso.com/public'
+            actload = urllib.request.urlopen(self.urlgen('http://mis.nyiso.com/public'
                                     '/csv/damlbmp/','damlbmp_zone.csv', 0))
         lines = actload.readlines()
         actload.close()
@@ -218,7 +218,7 @@ class NYIsoDriver(ScraperDriver):
 
 
     def actual_lmp(self):            
-        actload = urllib2.urlopen('http://mis.nyiso.com/public/'
+        actload = urllib.request.urlopen('http://mis.nyiso.com/public/'
                                             'realtime/realtime_zone_lbmp.csv')
         lines = actload.readlines()
         actload.close()
@@ -255,7 +255,7 @@ class NYIsoDriver(ScraperDriver):
 
 
     def transfer_interface(self):
-        trans_load = urllib2.urlopen('http://mis.nyiso.com/public/csv/External'
+        trans_load = urllib.request.urlopen('http://mis.nyiso.com/public/csv/External'
                             'LimitsFlows/currentExternalLimitsFlows.csv')
         lines = trans_load.readlines()
         lines.pop(0)
@@ -303,9 +303,9 @@ class NYIsoDriver(ScraperDriver):
         self.update_frequency = 300
         scraped = self.scrape()
         
-        for data_type in scraped.keys():
-            for location in scraped[data_type].keys():
-                for valtype in scraped[data_type][location].keys():
+        for data_type in list(scraped.keys()):
+            for location in list(scraped[data_type].keys()):
+                for valtype in list(scraped[data_type][location].keys()):
                     path = "/" + data_type + "/" + location + "/" + valtype
                     temp = self.add_timeseries(path, "NYISO" + data_type + 
                                 location + valtype,

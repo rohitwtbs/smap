@@ -123,12 +123,12 @@ class TagPick(Operator):
 
     def __init__(self, inputs, *vals, **kwargs):
         tag = kwargs.get('tag', 'uuid')
-        keys = map(lambda x: x.get(tag, None), inputs)
-        self.order = map(lambda val: keys.index(val), vals)
+        keys = [x.get(tag, None) for x in inputs]
+        self.order = [keys.index(val) for val in vals]
         Operator.__init__(self, inputs, [inputs[i] for i in self.order])
 
     def process(self, data):
-        return map(lambda i: data[i], self.order)
+        return [data[i] for i in self.order]
 
     def sketch(self):
         return "null"

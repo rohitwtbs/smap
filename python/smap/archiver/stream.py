@@ -35,7 +35,7 @@ import time
 import traceback
 import operator
 
-from zope.interface import implements
+from zope.interface import implementer
 from twisted.internet import interfaces, reactor, defer
 from twisted.python import failure, log
 
@@ -85,7 +85,7 @@ def lookup_operator_by_name(name, args, kwargs):
         for proto in installed_ops[name].operator_constructors:
             if len(proto) != len(args): continue
             try:
-                alist = map(lambda (fn, a): fn(a), zip(proto, args))
+                alist = [fn_a[0](fn_a[1]) for fn_a in zip(proto, args)]
                 kwargs_ = kwargs
             except ValueError:
                 continue
@@ -98,10 +98,10 @@ def lookup_operator_by_name(name, args, kwargs):
                                 (name, str(args)))
 
 
+@implementer(interfaces.IPushProducer)
 class OperatorApplicator(object):
     """Make a closure that will apply the operator expresion to a
     specific set of streams and metadata."""
-    implements(interfaces.IPushProducer)
     DATA_DAYS = 5
 
     def __init__(self, op, data_spec, consumer, group=None):
@@ -130,7 +130,7 @@ class OperatorApplicator(object):
             if (self.chunk_idx != None and 
                 self.chunk_idx == self.chunk_loaded_idx):
                 return self.load_chunk()
-        except Exception, e:
+        except Exception as e:
             self.abort(failure.Failure(e))
 
     def stopProducing(self):
@@ -142,7 +142,7 @@ class OperatorApplicator(object):
         the actual data"""
         # save the metadata and streamids for loading
         opmeta = data[0][1]
-        opmeta = map(lambda x: dict(util.buildkv('', x)), opmeta)
+        opmeta = [dict(util.buildkv('', x)) for x in opmeta]
         if not len(opmeta):
             self.consumer.write([])
             self.consumer.unregisterProducer()
@@ -150,8 +150,8 @@ class OperatorApplicator(object):
             return 
 
         # sort the streamids to be in the same order as the operator inputs
-        meta_uid_order = dict(zip(map(operator.itemgetter('uuid'), opmeta), 
-                                  xrange(0, len(opmeta))))
+        meta_uid_order = dict(list(zip(list(map(operator.itemgetter('uuid'), opmeta)), 
+                                  list(range(0, len(opmeta))))))
         self.streamids = data[1][1]
         self.streamids.sort(key=lambda elt: meta_uid_order[elt[0]])
 
@@ -184,7 +184,7 @@ class OperatorApplicator(object):
                 name, size = self.sketch
                 # try to load things in readingdb-friendly 10000-point chunks
                 self.chunk_length = size * 9990
-                print "Final sketch:", self.sketch
+                print("Final sketch:", self.sketch)
 
         self.resumeProducing()
 
@@ -275,7 +275,7 @@ class OperatorApplicator(object):
         log.msg("STATS: Operator processing took %0.6fs" % (time.time() - tic))
         # log.msg("writing " + str(map(len, redata)))
         # construct a return value with metadata and data merged
-        return map(self.build_result, zip(redata, self.op.outputs))
+        return list(map(self.build_result, list(zip(redata, self.op.outputs))))
         # print "processing and writing took", time.time() - tic
 
     def publish_data(self, data, last):
@@ -285,7 +285,8 @@ class OperatorApplicator(object):
                 self.consumer.unregisterProducer()
                 self.consumer.finish()
 
-    def build_result(self, (d, s)):
+    def build_result(self, xxx_todo_changeme):
+        (d, s) = xxx_todo_changeme
         obj = dict(s)
         if isinstance(d, np.ndarray):
             obj['Readings'] = d.tolist()

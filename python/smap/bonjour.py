@@ -37,7 +37,7 @@ def broadcast(reactor, regtype, port, name=None, records={}):
                                          port=port,
                                          callBack=_callback)
     recs = pybonjour.TXTRecord()
-    for k, v in records.iteritems():
+    for k, v in records.items():
         recs[k] = str(v)
     pybonjour.DNSServiceAddRecord(sdref, 
                                   rrtype=pybonjour.kDNSServiceType_TXT,

@@ -63,8 +63,7 @@ class DatetimeOperator(ParallelSimpleOperator):
         ParallelSimpleOperator.__init__(self, inputs)
 
     def _base_operator(self, vec):
-        return zip(map(lambda x: dtutil.ts2dt(x).astimezone(self.tz), 
-                       map(int, vec[:,0].astype(np.int))), vec[:, 1])
+        return list(zip([dtutil.ts2dt(x).astimezone(self.tz) for x in list(map(int, vec[:,0].astype(np.int)))], vec[:, 1]))
 
 
 class DayOfWeekOperator(Operator):
@@ -84,8 +83,8 @@ class DayOfWeekOperator(Operator):
     operator_constructors = [(), (str,)]
 
     def __init__(self, inputs, days="1,2,3,4,5"):
-        self.days = map(int, days.split(','))
-        self.tzs = map(lambda x: dtutil.gettz(x['Properties/Timezone']), inputs)
+        self.days = list(map(int, days.split(',')))
+        self.tzs = [dtutil.gettz(x['Properties/Timezone']) for x in inputs]
         Operator.__init__(self, inputs, OP_N_TO_N)
 
     def process(self, data):
@@ -93,8 +92,6 @@ class DayOfWeekOperator(Operator):
         for i, vec in enumerate(data):
             ma = MaskedDTList(vec[:, 0], self.tzs[i])
             # find the days we're interested in
-            takes = filter(None,
-                           map(lambda (i, ts): i if ts.isoweekday() in self.days else None,
-                               enumerate(ma)))
+            takes = [_f for _f in [i_ts[0] if i_ts[1].isoweekday() in self.days else None for i_ts in enumerate(ma)] if _f]
             rv.append(vec[takes, :])
         return rv

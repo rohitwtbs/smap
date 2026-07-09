@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 @author Stephen Dawson-Haggerty <stevedh@eecs.berkeley.edu>
 """
 
-import core
+from . import core
 
 authdb = {
     'client certificate' : set(['CAP_SECURE']),
@@ -58,8 +58,8 @@ class Auth:
         self.clist = set(clist)
 
     def ssl_get_principal(request):
-        print "request_ssl_get_principal"
-        print dir(request.transport)
+        print("request_ssl_get_principal")
+        print(dir(request.transport))
 
     def has_cap(self, request, principal):
         # the reporting system bypasses checks

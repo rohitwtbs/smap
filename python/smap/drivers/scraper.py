@@ -31,12 +31,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 """
                                                                                 
 import time
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 from smap.driver import SmapDriver
 from smap.util import periodicSequentialCall
 
-urllib2.install_opener(urllib2.build_opener())
+urllib.request.install_opener(urllib.request.build_opener())
 
 class ScraperDriver(SmapDriver):
     """Periodically republish scraped data as an sMAP feed. The driver that 
@@ -80,16 +80,16 @@ class ScraperDriver(SmapDriver):
         # occur.
         try:
             scraped = self.scrape()
-        except urllib2.URLError:
+        except urllib.error.URLError:
             pass
-        except urllib2.HTTPError:
+        except urllib.error.HTTPError:
             pass
         except IOError:
             pass
         else:
-            for data_type in scraped.keys():
-                for location in scraped[data_type].keys():
-                    for valtype in scraped[data_type][location].keys():
+            for data_type in list(scraped.keys()):
+                for location in list(scraped[data_type].keys()):
+                    for valtype in list(scraped[data_type][location].keys()):
                         timeseries = scraped[data_type][location][valtype]
                         path = "/" + data_type + "/" + location + "/" + valtype
                         for pair in timeseries:

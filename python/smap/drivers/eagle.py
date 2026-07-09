@@ -76,7 +76,7 @@ class Eagle(SmapDriver):
             fdemand = 1. * demand * dmultiplier / ddivisor
             fdemand *= self.multiplier
             self.add('/demand', fdemand)
-            print 'demand:', fdemand, 'kW'
+            print('demand:', fdemand, 'kW')
         except AttributeError:
             pass
        
@@ -93,8 +93,8 @@ class Eagle(SmapDriver):
             freceived *= self.multiplier
             self.add('/summation_delivered', fdelivered)
             self.add('/summation_received', freceived)
-            print 'delivered:', fdelivered, 'kWh'
-            print 'received:', freceived, 'kWh'
+            print('delivered:', fdelivered, 'kWh')
+            print('received:', freceived, 'kWh')
         except AttributeError:
             pass
 
@@ -145,12 +145,12 @@ if __name__=='__main__':
     sendstr = "<LocalCommand>\n <Name>list_devices</Name>\n</LocalCommand>\n"
     s.send(sendstr)
 
-    print "sending to Eagle: \n\r"
+    print("sending to Eagle: \n\r")
     sys.stdout.write(sendstr)
     time.sleep(1)
-    print
+    print()
 
-    print "Eagle response: \n\r"
+    print("Eagle response: \n\r")
 
     while 1:
         buf = s.recv(1000)
@@ -161,11 +161,11 @@ if __name__=='__main__':
     s.close()
     time.sleep(1)
 
-    print "parse this response and us ethe MACID to request more information\n\r"
+    print("parse this response and us ethe MACID to request more information\n\r")
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    print s
+    print(s)
 
     s.connect((Eagle_IP, 5002))
     time.sleep(1)
@@ -174,13 +174,13 @@ if __name__=='__main__':
     sendstr = '<LocalCommand>\n <Name>get_device_data</Name>\n <MacId>0x%s</MacId>\n</LocalCommand>\n' % mac_id
     s.send(sendstr)
 
-    print
-    print "sending to Eagle: \n\r"
+    print()
+    print("sending to Eagle: \n\r")
     sys.stdout.write(sendstr)
     time.sleep(1)
 
-    print
-    print "Eagle response: \n\r"
+    print()
+    print("Eagle response: \n\r")
 
     while 1:
         buf = s.recv(1000)

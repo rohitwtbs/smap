@@ -32,7 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os
 import uuid
-from zope.interface import implements
+from zope.interface import implementer
 from twisted.web import resource
 from twisted.internet import reactor, defer
 import sys
@@ -47,9 +47,10 @@ from smap import actuate
 from smap import jobs
 from smap.interface import *
 from smap.checkers import datacheck
-from util import SmapException, SmapSchemaException
+from .util import SmapException, SmapSchemaException
 
 
+@implementer(ITimeseries)
 class Timeseries(dict):
     """Represent a single Timeseries.  A Timeseries is a single stream of
     scalars, with associated units.
@@ -58,7 +59,6 @@ class Timeseries(dict):
     data type (long or double), unit of measure, and
     timezone.
     """
-    implements(ITimeseries)
 
     FIELDS = ["Readings", "Description", "Metadata", 
               "Properties", "uuid"]
@@ -193,7 +193,7 @@ Can be called with 1, 2, or 3 arguments.  The forms are
         # actually do anything.
         if self.dirty:
             split_path = util.split_path(getattr(self, 'path'))
-            for i in xrange(0, len(split_path)):
+            for i in range(0, len(split_path)):
                 path_seg = util.join_path(split_path[:i])
                 self.inst.reports.publish(path_seg, 
                                           self.inst.get_collection(path_seg))
@@ -285,7 +285,7 @@ Can be called with 1, 2, or 3 arguments.  The forms are
 
         try:
             val = self.impl.translate_state(state)
-        except Exception, e:
+        except Exception as e:
             raise SmapException("Error processing write result: " + str(e), 500)
 
         if self.autoadd:
@@ -296,9 +296,9 @@ Can be called with 1, 2, or 3 arguments.  The forms are
             ts['Readings'] = [(now, val)]
             return ts
 
+@implementer(ICollection)
 class Collection(dict):
     """Represent a collection of sMAP resources"""
-    implements(ICollection)
     def __init__(self, path, inst=None, description=None, *args):
         """
         :param string path: the path where the collection will be added
@@ -370,12 +370,12 @@ class LoggingTimeseries(object):
     def latest(self):
         return self.last
 
+@implementer(ISmapInstance)
 class SmapInstance:
     """A sMAP instance is a tree of :py:class:`Collections` and
 :py:class:`Timeseries`.  A :py:class:`SmapInstance` allows lookups
 based on either path or UUID, and also contains a reference to the
 sMAP reporting functionality."""
-    implements(ISmapInstance)
 
     def __init__(self, root_uuid, **kwargs):
         if not isinstance(root_uuid, uuid.UUID):
@@ -415,7 +415,7 @@ sMAP reporting functionality."""
     def start(self):
         """Causes the reporting subsystem and any drivers to be started
         """
-        map(lambda x: x.start(), self.drivers.itervalues())
+        list(map(lambda x: x.start(), iter(self.drivers.values())))
 
         # set all checkers that loader has hooked in to be run on the
         # given interval
@@ -426,8 +426,7 @@ sMAP reporting functionality."""
             reactor.callLater(2, checkstarter, *args)
 
     def stop(self):
-        return defer.DeferredList(map(lambda x: defer.maybeDeferred(x.stop),
-                                      self.drivers.itervalues()))
+        return defer.DeferredList([defer.maybeDeferred(x.stop) for x in iter(self.drivers.values())])
 
     def uuid(self, key, namespace=None):
         if not namespace:
@@ -511,7 +510,7 @@ sMAP reporting functionality."""
             deferreds = []
 
             # start all the rendering
-            for k, v in val.iteritems():
+            for k, v in val.items():
                 rendered = v.render(request)
                 if isinstance(rendered, defer.Deferred):
                     deferreds.append((k, rendered))
@@ -530,7 +529,7 @@ sMAP reporting functionality."""
                             rv[path] = yld
                     return rv
 
-                d = defer.DeferredList(map(operator.itemgetter(1), deferreds), consumeErrors=True)
+                d = defer.DeferredList(list(map(operator.itemgetter(1), deferreds)), consumeErrors=True)
                 d.addCallback(insertResults)
                 return d
 
@@ -557,11 +556,11 @@ sMAP reporting functionality."""
         """
         try:
             return self.get_timeseries(path).add(*args, **kwargs)
-        except AttributeError, e:
+        except AttributeError as e:
             raise SmapException("add failed: no such path: %s" % path)
 
     def _add_parents(self, path):
-        for i in xrange(0, len(path)):
+        for i in range(0, len(path)):
             if not self.get_collection(util.join_path(path[:i])):
                 self.add_collection(util.join_path(path[:i]))
 
@@ -671,7 +670,7 @@ sMAP reporting functionality."""
             metadata = dict([metadata])
         else: metadata = metadata[0]
 
-        for v in metadata.itervalues():
+        for v in metadata.values():
             if not util.is_string(v):
                 raise SmapException("set_metadata: values must be strings!")
 
@@ -697,18 +696,18 @@ if __name__ == '__main__':
 
     t.add(util.now(), 12)
     t.add(util.now(), 13)
-    print s.get_timeseries(t['uuid'])
-    print s.get_timeseries('/sensor0')
-    print s.get_timeseries('/')
+    print(s.get_timeseries(t['uuid']))
+    print(s.get_timeseries('/sensor0'))
+    print(s.get_timeseries('/'))
 
 #    s.get_collection('/').set_metadata({'Extra' : {"foo": " bar"}})
-    print s.get_collection('/')
+    print(s.get_collection('/'))
 
 
 #     print "Finding all Timeseries under /"
-    print s._lookup_r('/', pred=ITimeseries.providedBy)
-    print s.lookup('/+Timeseries')
+    print(s._lookup_r('/', pred=ITimeseries.providedBy))
+    print(s.lookup('/+Timeseries'))
 
-    print s._lookup_r('/', pred=lambda x: x.dirty)
+    print(s._lookup_r('/', pred=lambda x: x.dirty))
 
     # print s._lookup_r("/foo")

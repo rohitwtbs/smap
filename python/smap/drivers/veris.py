@@ -54,7 +54,7 @@ from smap.loader import SmapLoadError
 from smap.util import periodicSequentialCall
 
 class VerisMeter:
-    all_meters = range(1,43)
+    all_meters = list(range(1,43))
     register_map = {
         'current_scale' : (1000, 1041),
         'power_scale'   : (1042, 1083),
@@ -114,7 +114,7 @@ class VerisMeter:
         if not self.last_reset_energy:
             return current
 
-        return map(lambda x,y: x-y, current, self.last_reset_energy)
+        return list(map(lambda x,y: x-y, current, self.last_reset_energy))
 
     def reset_energy(self, vals=None):
         # reset doesn't seem to work reliably -- just remember what it was last time
@@ -126,9 +126,10 @@ class VerisMeter:
         self.last_reset_energy = newvals
 
     def scale_vals(self, vals, scale):
-        return map(lambda x,y: x*(10 ** y), vals, scale)
+        return list(map(lambda x,y: x*(10 ** y), vals, scale))
 
-    def read_reg_range(self, (start, end)):
+    def read_reg_range(self, xxx_todo_changeme):
+        (start, end) = xxx_todo_changeme
         start -= 1
         end -= 1
         if end < start: 
@@ -159,7 +160,7 @@ class VerisDriver(SmapDriver):
             raise SmapLoadError("Veris Driver requires Address, Port, and BusID")
         self.period = opts.get("Period", 30)
         
-        for channel in xrange(1, 43):
+        for channel in range(1, 43):
             self.add_timeseries("/%i/pf" % channel, "pf", data_type="double")
             self.add_timeseries("/%i/power" % channel, "kW", data_type="double")
             self.add_timeseries("/%i/current" % channel, "A", data_type="double")
@@ -186,6 +187,6 @@ class VerisDriver(SmapDriver):
             self.update_field('power', power)
             energy = self.veris.get_energy()
             self.update_field('energy', energy)
-        except Exception, e:
+        except Exception as e:
             logging.error("Exception updating readings: " + str(e))
 

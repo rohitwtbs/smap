@@ -34,12 +34,12 @@ import sys
 
 import re
 import csv
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import datetime, time
 import traceback
 
-import sensordb
-import obvius
+from . import sensordb
+from . import obvius
 
 from twisted.internet import reactor, threads, task
 from twisted.internet.defer import DeferredSemaphore, Deferred
@@ -73,12 +73,12 @@ def make_field_idxs(type, header, location=None):
         if elt:
             name = '-'.join(elt)
             ddups[name] = ddups.get(name, 0) + 1
-    for k, v in ddups.iteritems():
+    for k, v in ddups.items():
         if v > 1:
-            print "WARNING:", v, "matching channels for", k
-            print header
-            print paths
-            print ddups
+            print("WARNING:", v, "matching channels for", k)
+            print(header)
+            print(paths)
+            print(ddups)
     return paths, map_
 
 class BMOLoader(smap.driver.SmapDriver):
@@ -97,7 +97,7 @@ class BMOLoader(smap.driver.SmapDriver):
         self.set_metadata('/', {
                 'Extra/Driver' : 'smap.drivers.obvius.bmo.BMOLoader' })
 
-        print self.url, self.rate
+        print(self.url, self.rate)
 
     def start(self):
         # periodicSequentialCall(self.update).start(self.rate)
@@ -136,8 +136,8 @@ class BMOLoader(smap.driver.SmapDriver):
         if not self.enddt:
             self.enddt = dtutil.now()
 
-        start, end = urllib.quote(dtutil.strftime_tz(self.startdt, TIMEFMT)), \
-            urllib.quote(dtutil.strftime_tz(self.enddt, TIMEFMT))
+        start, end = urllib.parse.quote(dtutil.strftime_tz(self.startdt, TIMEFMT)), \
+            urllib.parse.quote(dtutil.strftime_tz(self.enddt, TIMEFMT))
 
         url = self.url % (start, end)
         url += "&mnuStartMonth=%i&mnuStartDay=%i&mnuStartYear=%i" % \
@@ -151,15 +151,15 @@ class BMOLoader(smap.driver.SmapDriver):
              self.enddt.day,
              self.enddt.year)
         url += "&mnuEndTime=%i%%3A%i" % (self.enddt.hour, self.enddt.minute)
-        print "loading", url
+        print("loading", url)
 
         self.fp = httputils.load_http(url, as_fp=True, auth=auth.BMOAUTH)
         if not self.fp:
             raise core.SmapException("timeout!")
         self.reader = csv.reader(self.fp, dialect='excel-tab')
-        header = self.reader.next()
+        header = next(self.reader)
         if len(header) == 0:
-            print "Warning: no data from", self.url
+            print("Warning: no data from", self.url)
             raise core.SmapException("no data!")
         try:
             self.field_map, self.map = make_field_idxs(self.meter_type, header, 
@@ -194,12 +194,12 @@ class BMOLoader(smap.driver.SmapDriver):
                     self.push_hist = ts
                 ts = dtutil.dt2ts(ts)
 
-                data.append((ts, zip(self.field_map, r)))
+                data.append((ts, list(zip(self.field_map, r))))
 
                 readcnt += 1
                 if readcnt > 100:
                     return data
-        except Exception, e:
+        except Exception as e:
             self.fp.close()
             self.reader = None
             raise e

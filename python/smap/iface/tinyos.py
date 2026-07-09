@@ -92,8 +92,8 @@ class TOSSerialClient(protocol.Protocol):
         packet_crc = self._decode(packet[-2:])
 
         if crc != packet_crc:
-            print ("wrong CRC: %x != %x %s (%s)" % \
-                  (crc, packet_crc, ["%2x" % i for i in packet], str(self.DEBUG)))
+            print(("wrong CRC: %x != %x %s (%s)" % \
+                  (crc, packet_crc, ["%2x" % i for i in packet], str(self.DEBUG))))
             return
 
         if len(packet):
@@ -113,7 +113,7 @@ class TOSSerialClient(protocol.Protocol):
         return r
 
     def _decode(self, v):
-        r = long(0)
+        r = int(0)
         for i in v[::-1]:
             r = (r << 8) + i
         return r

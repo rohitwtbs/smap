@@ -142,10 +142,10 @@ class EnlightedAPI(object):
 
 if __name__=='__main__':
     e = EnlightedAPI("10.4.10.139")
-    print e.getSensorDimLevel(1)
-    print e.setSensorDimLevel(1,5,1)
-    print e.getSensorLastOccupancySeen(1)
-    print e.getSensorOccupancyStatus(1)
+    print(e.getSensorDimLevel(1))
+    print(e.setSensorDimLevel(1,5,1))
+    print(e.getSensorLastOccupancySeen(1))
+    print(e.getSensorOccupancyStatus(1))
     #print e.getZoneAvgDimLevel(2)
     #print e.setZoneDimLevel(2,60,1)
     #print e.getZoneLastOccupancySeen(2)

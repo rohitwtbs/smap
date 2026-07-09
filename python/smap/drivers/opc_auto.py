@@ -42,8 +42,8 @@ from smap.contrib import dtutil
 import OpenOPC
 
 # properties not to add as metadata
-PROP_FILTER_LIST = [u"Item Timestamp",
-                    u"Item Value"]
+PROP_FILTER_LIST = ["Item Timestamp",
+                    "Item Value"]
 
 
 def exclude(key):
@@ -75,7 +75,7 @@ class Driver(SmapDriver):
         self.opc.close()
 
     def make_path(self, point):
-	return point.replace("\\","/")
+        return point.replace("\\","/")
 
     def parse_pointfile(self, fp):
         pointdfns = {}
@@ -107,19 +107,19 @@ class Driver(SmapDriver):
 
 
     def connect(self):
-        print "attempting OPC connection to", self.opc_name
+        print("attempting OPC connection to", self.opc_name)
         self.opc = OpenOPC.open_client(host=self.opc_host)
         self.opc.connect(self.opc_name, self.opc_host)
         if self.points is None:
             pointlist = self.opc.list(recursive=True, flat=True)
             self.points = self.parse_pointlist(pointlist)
-        props = self.opc.properties(self.points.keys())
-        print "loaded", len(props), "properties"
+        props = self.opc.properties(list(self.points.keys()))
+        print("loaded", len(props), "properties")
         points = {}
         for point, pid, key, val in props:
             key = key.decode().encode('ascii','ignore')
             key = key.replace(' ','')
-            if isinstance(val, unicode) or isinstance(val, str):
+            if isinstance(val, str) or isinstance(val, str):
                 val = val.encode('ascii','ignore')
             name = self.make_path(point)
             if not name in points:
@@ -128,18 +128,18 @@ class Driver(SmapDriver):
                 points[name]['OpcDA/' + key] = str(val)
 
         # try to make some sense out of the metadata
-        for name, meta in points.iteritems():
+        for name, meta in points.items():
             unit = str(meta.get('OpcDA/' + self.unit_tag, 'None'))
             dtype = meta.get('OpcDA/ItemCanonicalDataType', None)
             if not dtype:
-                print "no datatype tag in", name
+                print("no datatype tag in", name)
                 continue
             dtype = 'double'
             if not self.get_timeseries(name):
                 name = name.decode().encode('ascii','ignore')
                 self.add_timeseries(name, unit, data_type=dtype)
                 self.set_metadata(name, points[name])
-        vals = self.opc.read(self.points.keys(), group="smap-points-group")
+        vals = self.opc.read(list(self.points.keys()), group="smap-points-group")
         self.updater = task.LoopingCall(self.update).start(self.rate)
 
     def _update(self):

@@ -73,7 +73,7 @@ class InstanceResource(resource.Resource):
         # assemble the results
         try:
             obj = self.inst.lookup(util.join_path(request.postpath))
-        except Exception, e:
+        except Exception as e:
             import traceback
             traceback.print_exc()
             setResponseCode(request, exception, 500)
@@ -162,7 +162,7 @@ class ReportingInstanceResource(resource.Resource):
             if not self.reports.update_report(obj):
                 self.reports.add_report(obj)
                 request.setResponseCode(201) # created
-        except Exception, e:
+        except Exception as e:
             setResponseCode(request, e, 400)
             request.setHeader('Content-type', 'text/plain')
             request.write(str(e))
@@ -211,7 +211,7 @@ class ReportingResource(resource.Resource):
             obj = read_report(self, request)
             self.reports.add_report(obj)
             request.setResponseCode(201)
-        except Exception, e:
+        except Exception as e:
             request.setHeader('Content-type', 'text/plain')
             setResponseCode(request, e, 400)
             request.write(str(e))
@@ -228,7 +228,7 @@ class JobsResource(resource.Resource):
     def render_GET(self, request):
         request.setHeader('Content-type', 'application/json')
         rv = []
-        jobs = map(lambda j: j.__dict__, self.inst.jobs.jobs)
+        jobs = [j.__dict__ for j in self.inst.jobs.jobs]
         for j in jobs:
             obj = {'name': j['name'],
                    'start_time': j['start_time'],
@@ -266,9 +266,9 @@ class JobsResource(resource.Resource):
         content = request.content.read()
         if content:
             del_uuids = json.loads(content)
-            self.inst.jobs.jobs = filter(lambda j: j.uuid not in del_uuids, self.inst.jobs.jobs)
+            self.inst.jobs.jobs = [j for j in self.inst.jobs.jobs if j.uuid not in del_uuids]
             self.inst.jobs.cancel_job(del_uuids)
-        return json.dumps(map(lambda j: j.uuid, self.inst.jobs.jobs))
+        return json.dumps([j.uuid for j in self.inst.jobs.jobs])
 
 class RootResource(resource.Resource):
     """Resource representing the root of the sMAP server
@@ -297,15 +297,15 @@ def getSite(inst, docroot=None):
         contents.append('docs')
         contents.sort()
     root = RootResource(contents=contents)
-    root.putChild('data', InstanceResource(inst))
-    root.putChild('reports', ReportingResource(inst.reports))
+    root.putChild(b'data', InstanceResource(inst))
+    root.putChild(b'reports', ReportingResource(inst.reports))
     if docroot:
-        root.putChild('docs', static.File(docroot))
+        root.putChild(b'docs', static.File(docroot))
 
     if hasattr(inst, 'jobs'):
         contents.append('jobs')
         contents.sort()
-        root.putChild('jobs', JobsResource(inst))
+        root.putChild(b'jobs', JobsResource(inst))
 
     site = server.Site(root)
     return site
@@ -321,8 +321,8 @@ def run(inst, port=None, logdir=None):
     if not logdir: logdir = smapconf.SERVER.get('logdir', os.getcwd())
     if not os.path.exists(logdir):
         os.makedirs(logdir)
-    print "Logging to", logdir
-    print "Starting server on port", port    
+    print("Logging to", logdir)
+    print("Starting server on port", port)    
     # Allow 50 1MB files
     observer = log.FileLogObserver(LogFile('sMAP.log', logdir, rotateLength=1000000, maxRotatedFiles=50))
     log.startLogging(observer)
@@ -385,7 +385,7 @@ if __name__ == '__main__':
         #print '-'*50
         s.get_collection('/')['Metadata']['Location'] = {'Room' : counter}
         s.get_collection('/').dirty_children()
-        for i in xrange(0, 1):
+        for i in range(0, 1):
 #             s.get_timeseries('/sensor0')._add(util.now(), counter)
 #             s.get_timeseries('/sensor1')._add(counter)
             s._add('/sensor0', util.now(), counter)

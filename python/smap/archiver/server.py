@@ -37,6 +37,7 @@ from twisted.web import resource, server, static
 from twisted.web.resource import NoResource
 from twisted.python import log
 
+from smap import compat
 from smap import subscriber
 from smap import util
 from smap.server import RootResource, setResponseCode
@@ -71,7 +72,7 @@ class DataResource(resource.Resource):
 
             # we want to republish the non-munged version of the data,
             # but then if that fails it may kill further processing.
-            d = self.republisher(request.prepath[-1], public, obj)
+            d = self.republisher(compat.to_str(request.prepath[-1]), public, obj)
             util.push_metadata(obj)
             d.addCallback(lambda _: (subid, obj))
 
@@ -86,14 +87,14 @@ class DataResource(resource.Resource):
         """Handle new data"""
         # first check if the api key is valid
         d = self.db.runQuery("SELECT id, public FROM subscription WHERE key = %s", 
-                             (request.prepath[-1],))
+                             (compat.to_str(request.prepath[-1]),))
         d.addCallback(lambda x: self._check_subscriber(request, x))
 
         # if so, add the data
-        d.addCallback(lambda (subid, obj): self._add_data(subid, obj))
+        d.addCallback(lambda subid_obj: self._add_data(subid_obj[0], subid_obj[1]))
         def add_success(x):
             if not x:
-                print x
+                print(x)
                 request.setResponseCode(500)
             settings.metrics.increment("add_count")
             request.finish()
@@ -136,14 +137,14 @@ def getSite(db,
         return defer.DeferredList(dl, fireOnOneErrback=True)
 
     if 'republish' in resources:
-        root.putChild('republish', http_repub)
+        root.putChild(b'republish', http_repub)
     if 'wsrepublish' in resources:
-        root.putChild('wsrepublish', websocket_repub)
+        root.putChild(b'wsrepublish', websocket_repub)
     if 'add' in resources:
-        root.putChild('add', DataResource(db, repub_fn))
+        root.putChild(b'add', DataResource(db, repub_fn))
     if 'api' in resources:
-        root.putChild('api', api.Api(db))
+        root.putChild(b'api', api.Api(db))
     if 'static' in resources:
-        root.putChild('static', static.File('static'))
+        root.putChild(b'static', static.File('static'))
     return server.Site(root)
 

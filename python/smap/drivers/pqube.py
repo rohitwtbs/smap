@@ -46,9 +46,9 @@ import logging
 import time
 import calendar
 import threading
-import urllib2
-import httplib
-import urlparse
+import urllib.request, urllib.error, urllib.parse
+import http.client
+import urllib.parse
 import re
 import operator
 import struct
@@ -60,7 +60,7 @@ from smap.drivers import modbus
 from smap.drivers.modbus import ModbusRegister as R
 from smap.util import periodicSequentialCall
 
-urllib2.install_opener(urllib2.build_opener())
+urllib.request.install_opener(urllib.request.build_opener())
 
 def p(val):
     return float(val[0])
@@ -126,13 +126,13 @@ class PQube(SmapDriver):
     def update(self):
         logging.debug("Updating " + self.serverloc)
         try:
-            fp = urllib2.urlopen(self.serverloc + '/Meters.htm', timeout=15)
+            fp = urllib.request.urlopen(self.serverloc + '/Meters.htm', timeout=15)
             html = fp.read()
-        except IOError, e:
+        except IOError as e:
             logging.error("IOError while reading pqube: url: %s exception: %s" % 
                           (self.serverloc, str(e)))
             return
-        except httplib.HTTPException, e:
+        except http.client.HTTPException as e:
             logging.error("HTTP exception reading pqube: url: %s exception: %s" % 
                           (self.serverloc, str(e)))
             return

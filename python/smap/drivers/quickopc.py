@@ -84,8 +84,8 @@ class OpcEvents(object):
             driver = OPC_DRIVERS[v.State]
             if v.Exception:
                 continue
-            print v.ItemDescriptor.ItemId,
-            print v.Vtq.Timestamp, v.Vtq.Value
+            print(v.ItemDescriptor.ItemId, end=' ')
+            print(v.Vtq.Timestamp, v.Vtq.Value)
             ts = dtutil.strptime_tz(str(v.Vtq.Timestamp),
                                     "%m/%d/%y %H:%M:%S",
                                     tzstr=driver.opc_timezone)
@@ -94,7 +94,7 @@ class OpcEvents(object):
                 driver._add(driver.make_path(v.ItemDescriptor.ItemId),
                             int(dtutil.dt2ts(ts)),
                             v.Vtq.Value)
-            except Exception, e:
+            except Exception as e:
                 log.err("Error adding data: " + str(e))
 
 class Driver(SmapDriver):
@@ -108,7 +108,7 @@ class Driver(SmapDriver):
         if opts.get('OpcPointFile', None):
             with open(opts.get('OpcPointFile'), 'r') as fp:
                 self.points = self.parse_pointfile(fp)
-        print self.points.keys()
+        print(list(self.points.keys()))
 
         while True:
             me = ''.join(random.sample(string.letters, 12))
@@ -117,12 +117,12 @@ class Driver(SmapDriver):
                 OPC_DRIVERS[me] = self
                 self.me = me
                 break
-        print "driver set up"
+        print("driver set up")
 
     def start(self):
         # this should initialize the reactor thread...
         pythoncom.CoInitialize()
-        print "starting driver"
+        print("starting driver")
         d = threads.deferToThread(self.read_properties)
         d.addCallback(self.add_points)
         d.addCallback(self.subscribe)
@@ -152,19 +152,19 @@ class Driver(SmapDriver):
         pythoncom.CoInitialize()
         
         client = win32com.client.Dispatch("OPCLabs.EasyDAClient.5.1")
-        rv = dict((k, dict()) for k in self.points.iterkeys())
-        points = self.points.keys()
+        rv = dict((k, dict()) for k in self.points.keys())
+        points = list(self.points.keys())
         for opc_id, opc_name, smap_name in PROPERTIES:
-            print self.opc_host, self.opc_name, opc_id
-            for i in xrange(0, len(points), 10):
-                print "reading", opc_name, i
+            print(self.opc_host, self.opc_name, opc_id)
+            for i in range(0, len(points), 10):
+                print("reading", opc_name, i)
                 vals = client.GetMultiplePropertyValues(self.opc_host,
                                                         self.opc_name,
                                                         points[i:i+10],
                                                         opc_id)
                 for point_name, result in zip(self.points, vals):
                     if result.Exception:
-                        print "Error reading property", opc_name, "for", point_name
+                        print("Error reading property", opc_name, "for", point_name)
                         continue
                     rv[point_name][smap_name] = str(result.Value)
         # client should get cleaned up when it's garbage collected...
@@ -172,14 +172,14 @@ class Driver(SmapDriver):
 
     def add_points(self, metadata):
         """Create timeseries for all of the OPC points we're going to subscribe to"""
-        for point, meta in metadata.iteritems():
+        for point, meta in metadata.items():
             path = self.make_path(point)
-            print "adding timeseries", path
+            print("adding timeseries", path)
             self.add_timeseries(path,
                                 meta.get("Properties/UnitofMeasure", "Unknown"),
                                 data_type="double")
-            print meta
-            self.set_metadata(path, dict(((k, v) for k, v in meta.iteritems()
+            print(meta)
+            self.set_metadata(path, dict(((k, v) for k, v in meta.items()
                                           if k.startswith("Metadata"))))
             self.set_metadata(path, self.points[point])
                               
@@ -189,7 +189,7 @@ class Driver(SmapDriver):
                                                          OpcEvents)
         self.client.SubscribeMultipleItems(self.opc_host,
                                            self.opc_name,
-                                           self.points.keys(),
+                                           list(self.points.keys()),
                                            int(self.rate * 1000),
                                            self.me)
         reactor.callLater(0.10, self.com_poll)

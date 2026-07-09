@@ -68,7 +68,7 @@ class HeatX(driver.SmapDriver):
     def update(self):
         try:
             data = self.modbus.read(25, 36)
-        except IOError, e:
+        except IOError as e:
             log.err("Exception while reading device: " + str(e))
             return
         if data == None:

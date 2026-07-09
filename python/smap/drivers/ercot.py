@@ -31,14 +31,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 import time
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import datetime
 import re
 from smap.contrib import dtutil
 
 from smap.drivers.scraper import ScraperDriver
 
-urllib2.install_opener(urllib2.build_opener())
+urllib.request.install_opener(urllib.request.build_opener())
 
 class ErcotDriver(ScraperDriver):
     """Periodically scrape data from ERCOT and publish it as sMAP feeds
@@ -75,7 +75,7 @@ class ErcotDriver(ScraperDriver):
         return self.ercot_out
 
     def load_get(self):
-        act = urllib2.urlopen(self.DATA_TYPES["Total Area Load"]["Uri"])
+        act = urllib.request.urlopen(self.DATA_TYPES["Total Area Load"]["Uri"])
         lines = act.readlines()
         act.close()
         self.ercot_out["Load"]["Total Area"] = {}
@@ -91,7 +91,7 @@ class ErcotDriver(ScraperDriver):
                                                     "nable Limit"] = timeseries
 
     def total_gen_get(self):
-        gen = urllib2.urlopen(self.DATA_TYPES["Total Generation"]["Uri"])
+        gen = urllib.request.urlopen(self.DATA_TYPES["Total Generation"]["Uri"])
         lines = gen.readlines()
         gen.close()
         self.ercot_out["Generation"]["Total"] = {}
@@ -104,7 +104,7 @@ class ErcotDriver(ScraperDriver):
                                                   "Service Limit"] = timeseries
 
     def wind_gen_get(self):
-        gen = urllib2.urlopen(self.DATA_TYPES["Wind Generation"]["Uri"])
+        gen = urllib.request.urlopen(self.DATA_TYPES["Wind Generation"]["Uri"])
         lines = gen.readlines()
         gen.close()
         self.ercot_out["Generation"]["Wind"] = {}
@@ -119,7 +119,7 @@ class ErcotDriver(ScraperDriver):
         self.ercot_out["Generation"]["Wind"]["Actual"] = timeseries
 
     def SPP_get(self):
-        spp = urllib2.urlopen(self.DATA_TYPES["Actual SPP"]["Uri"])
+        spp = urllib.request.urlopen(self.DATA_TYPES["Actual SPP"]["Uri"])
         lines = spp.readlines()
         spp.close()
         while "th class=" not in lines[0]:
@@ -163,7 +163,7 @@ class ErcotDriver(ScraperDriver):
                 self.ercot_out["SPP"][columns[x]]["Actual"].append(point)
 
     def real_LMP_get(self):
-        lmp = urllib2.urlopen(self.DATA_TYPES["Actual LMP"]["Uri"])
+        lmp = urllib.request.urlopen(self.DATA_TYPES["Actual LMP"]["Uri"])
         lines = lmp.readlines()
         lmp.close()
         intermed_out = []
@@ -193,7 +193,7 @@ class ErcotDriver(ScraperDriver):
         url = self.DATA_TYPES["Forecasted SPP"]["Uri"].replace("<DATE HERE>",
                                                                          ptime)
         print(url)
-        SPP = urllib2.urlopen(url)
+        SPP = urllib.request.urlopen(url)
         lines = SPP.readlines()
         SPP.close()
         while 'td class="headerValue' not in lines[0]:
@@ -215,7 +215,7 @@ class ErcotDriver(ScraperDriver):
         lines = intermed_out
         columns = intermed_out.pop(0)[4:]
         for place in columns:
-            if place not in self.ercot_out["SPP"].keys():
+            if place not in list(self.ercot_out["SPP"].keys()):
                 self.ercot_out["SPP"][place] = { "Forecasted": [] }
             else:
                 self.ercot_out["SPP"][place]["Forecasted"] = []
@@ -279,9 +279,9 @@ class ErcotDriver(ScraperDriver):
         return int(time.mktime(out))
 
     def namer(self, data_type, location, valtype):
-        if (valtype + " " + data_type) in self.DATA_TYPES.keys():
+        if (valtype + " " + data_type) in list(self.DATA_TYPES.keys()):
             return valtype + " " + data_type
-        elif (location + " " + data_type) in self.DATA_TYPES.keys():
+        elif (location + " " + data_type) in list(self.DATA_TYPES.keys()):
             return location + " " + data_type
         else:
             return "ERR_ERR_ERR"
@@ -292,9 +292,9 @@ class ErcotDriver(ScraperDriver):
         self.update_frequency = 300
         scraped = self.scrape()
         namer = self.namer
-        for data_type in scraped.keys():
-            for location in scraped[data_type].keys():
-                for valtype in scraped[data_type][location].keys():
+        for data_type in list(scraped.keys()):
+            for location in list(scraped[data_type].keys()):
+                for valtype in list(scraped[data_type][location].keys()):
                     path = "/" + data_type + "/" + location + "/" + valtype
                     temp = self.add_timeseries(path, "ERCOT" + data_type + 
                                 location + valtype,

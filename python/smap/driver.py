@@ -34,23 +34,23 @@ import uuid
 import datetime
 import time
 import sys
-import urlparse
-import urllib2
+import urllib.parse
+import urllib.request, urllib.error, urllib.parse
 from twisted.internet import reactor, threads, defer
 from twisted.python.util import println
 from twisted.python import log
-from zope.interface import implements
+from zope.interface import implementer
 
-from interface import *
-import core
-import util
-import loader
+from .interface import *
+from . import core
+from . import util
+from . import loader
 from smap.contrib import dtutil
 
+@implementer(ISmapInstance)
 class SmapDriver(object):
     # this is actually a shim layer which presents a ISmapInstance to
     # drivers
-    implements(ISmapInstance)
     load_chunk_size = datetime.timedelta(days=1)
 
     @classmethod
@@ -148,10 +148,10 @@ class SmapDriver(object):
         return self.__inst.loading
     def _set_loading(self, val):
         if val:
-            print "starting load"
+            print("starting load")
             self.__inst.loading = True
         else:
-            print "finishing load"
+            print("finishing load")
             self.__inst.reports.update_subscriptions()
             self.__inst.loading = False
     loading = property(_get_loading, _set_loading)
@@ -171,16 +171,16 @@ class SmapDriver(object):
         end = self.start_dt + self.load_chunk_size
         if end > self.end_dt: end = self.end_dt
 
-        print "loading", self.start_dt, '-', self.end_dt
+        print("loading", self.start_dt, '-', self.end_dt)
         self.start_dt = self.start_dt + self.load_chunk_size
-        print start, end
+        print(start, end)
         d = defer.maybeDeferred(self.update, start, end)
         d.addCallback(self.update)
         d.addCallback(lambda _: self._flush())
         d.addCallback(self._load_time_chunk)
 
         def err(e):
-            print e
+            print(e)
         d.addErrback(err)
 
         return d
@@ -207,7 +207,7 @@ class FetchDriver(SmapDriver):
         self.timeout = int(opts.get('Timeout', 30)) # timeout for IO operations
 
         # load known URI schemes
-        scheme = urlparse.urlparse(self.uri).scheme
+        scheme = urllib.parse.urlparse(self.uri).scheme
         if scheme == 'http' or scheme == 'https':
             # load a page over http
             self.update = self.update_http
@@ -216,7 +216,7 @@ class FetchDriver(SmapDriver):
             self.update = self.update_file
         elif scheme == 'python':
             # load data by calling a python function
-            u = util.import_module(urlparse.urlparse(self.uri).netloc)
+            u = util.import_module(urllib.parse.urlparse(self.uri).netloc)
             self.update = lambda: self.process(u(opts))
         else:
             raise ValueError("Unknown URI scheme: " + scheme)
@@ -226,15 +226,15 @@ class FetchDriver(SmapDriver):
 
     def open_url(self):
         """Open a URL using urllib2, potentially sending HTTP authentication"""
-        mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        url_p = urlparse.urlparse(self.uri)
+        mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
+        url_p = urllib.parse.urlparse(self.uri)
         # parse out the username and password (if present) and
         # reconstruct a url which urllib2 will accept
         if url_p.username and url_p.password:
             mgr.add_password(None, url_p.hostname, url_p.username, url_p.password)
-        handler = urllib2.HTTPBasicAuthHandler(mgr)
-        opener = urllib2.build_opener(handler)
-        dest = urlparse.urlunparse((url_p.scheme, url_p.hostname, url_p.path, 
+        handler = urllib.request.HTTPBasicAuthHandler(mgr)
+        opener = urllib.request.build_opener(handler)
+        dest = urllib.parse.urlunparse((url_p.scheme, url_p.hostname, url_p.path, 
                                     url_p.params, url_p.query, url_p.fragment))
         try:
             # try the open but mask errors
@@ -254,7 +254,7 @@ class FetchDriver(SmapDriver):
         d.addErrback(println)
 
     def update_file(self):
-        with open(urlparse.urlparse(self.uri).path, "r") as fp:
+        with open(urllib.parse.urlparse(self.uri).path, "r") as fp:
             self.process(fp.read())
 
 

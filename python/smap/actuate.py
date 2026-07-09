@@ -42,11 +42,11 @@ authentication, and annotate their get and set methods with the
 appropriate capabilities necessary to access those resources.
 """
 import time
-import urlparse
+import urllib.parse
 import traceback
 
 from twisted.internet import defer
-from zope.interface import implements
+from zope.interface import implementer
 
 from smap import util
 from smap.interface import *
@@ -205,11 +205,11 @@ class GuardBandActuator(SmapActuator):
 
 if __name__ == '__main__':
     import uuid
-    import server
+    from . import server
     import json
     import sys
     from twisted.python import log
-    from authentication import authenticated
+    from .authentication import authenticated
     log.startLogging(sys.stdout)
     inst = core.SmapInstance('f80d0504-f2c6-11e0-80e6-ebc97648cfa4')
 
@@ -220,14 +220,14 @@ if __name__ == '__main__':
             BinaryActuator.setup(self, opts)
 
         def get_state(self, request):
-            print request
-            print "getting"
+            print(request)
+            print("getting")
             self.add(self.state)
             return self.state
         
         @authenticated(["__has_ssl__"])
         def set_state(self, request, state):
-            print "Setting state to", request,state
+            print("Setting state to", request,state)
             self.state = state
             return self.state
 
@@ -238,7 +238,7 @@ if __name__ == '__main__':
 #             print "Setting state to", state
 #             self.state = state
     act = MyActuator(inst.uuid('/a1'), 'UoM')
-    import actuate
+    from . import actuate
 
     inst.add_timeseries('/a1', act)
     inst.add_timeseries('/t1', 'V')

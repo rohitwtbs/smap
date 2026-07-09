@@ -36,11 +36,11 @@ import pprint
 from BeautifulSoup import BeautifulSoup as bs
 from smap.iface.http.httputils import load_html
 from optparse import OptionParser
-import ConfigParser
-import urllib
-import urlparse
+import configparser
+import urllib.request, urllib.parse, urllib.error
+import urllib.parse
 
-import ConfigParser
+import configparser
 try:
     import ordereddict
 except ImportError:
@@ -53,8 +53,8 @@ except ImportError:
     import collections as ordereddict
 
 sys.path.append("../../newlib")
-import sensordb
-import auth
+from . import sensordb
+from . import auth
 
 
 BMOROOT = 'http://www.buildingmanageronline.com/members/'
@@ -97,9 +97,9 @@ if __name__ == '__main__':
             }
 
     # look at all the meters hanging off each of them
-    for location in devices.iterkeys():
+    for location in devices.keys():
         if opts.progress:
-            print >>sys.stderr, "Processing", location
+            print("Processing", location, file=sys.stderr)
         soup = load_html(BMOROOT + devices[location]['href'], auth=AUTH, cache=opts.cache)
         subdevices = []
         for tr in soup.findAll('tr'):
@@ -115,17 +115,17 @@ if __name__ == '__main__':
     
     if opts.types:
         mtypes = {}
-        for name, v in devices.iteritems():
+        for name, v in devices.items():
             for t in v['subdevices']:
                 if not t['type'] in mtypes:
                     mtypes[t['type']] = {'count': 0, 'locs': []}
                 mtypes[t['type']]['count'] = mtypes[t['type']]['count'] + 1
                 mtypes[t['type']]['locs'].append(name)
-        for n, c in mtypes.iteritems():
-            print >>sys.stderr, c['count'], n, ' '.join(c['locs'])
+        for n, c in mtypes.items():
+            print(c['count'], n, ' '.join(c['locs']), file=sys.stderr)
 
     if opts.buildings:
-        print >>sys.stderr, '\n'.join(devices.iterkeys())
+        print('\n'.join(iter(devices.keys())), file=sys.stderr)
 
 if opts.conf:
     def make_section(cmps):
@@ -134,13 +134,13 @@ if opts.conf:
         import random
         return 'path' + str(random.randint(0, 100000000))
 
-    conf = ConfigParser.ConfigParser('', ordereddict.OrderedDict)
+    conf = configparser.ConfigParser('', ordereddict.OrderedDict)
     conf.optionxform = str
     conf.add_section('/')
     conf.set('/', 'Metadata/Location/Campus', 'UCB')
     conf.set('/', 'type', 'Collection')
     
-    for location, devs in devices.iteritems():
+    for location, devs in devices.items():
         if not location in auth.AUTH: continue
 
         parent_sec = make_section((location, ))
@@ -166,8 +166,8 @@ if opts.conf:
     conf.write(sys.stderr)
 elif opts.load:
     conf = {}
-    for location, devs in devices.iteritems():
-        params = urlparse.parse_qs(urlparse.urlsplit(devs['href']).query)
+    for location, devs in devices.items():
+        params = urllib.parse.parse_qs(urllib.parse.urlsplit(devs['href']).query)
         if not "AS" in params or not  "DB" in params: continue
         if location in auth.AUTH: continue
         thisconf = {}
@@ -186,9 +186,9 @@ elif opts.load:
             conf[location] = thisconf
 
     # generate config file
-    cf = ConfigParser.ConfigParser('', ordereddict.OrderedDict)
+    cf = configparser.ConfigParser('', ordereddict.OrderedDict)
     cf.optionxform = str
-    import obvius
+    from . import obvius
     cf.add_section('server')
     cf.set('server', 'SuggestThreadPool', '20')
     cf.set('server', 'Port', '9051')
@@ -198,11 +198,11 @@ elif opts.load:
     cf.set('/', 'Metadata/SourceName', 'buildingmanageronline archive')
     cf.set('/', 'uuid', '91dde108-d02b-11e0-8542-0026bb56ec92')
 
-    for building in conf.iterkeys():
+    for building in conf.keys():
         building_path = '/' + obvius.to_pathname(building)
         cf.add_section(building_path)
         cf.set(building_path, 'type', 'Collection')
-        for metername in conf[building].iterkeys():
+        for metername in conf[building].keys():
             metertype, url = conf[building][metername]
 
             building_name = building
@@ -222,7 +222,7 @@ elif opts.load:
             # add any extra config options specific to this meter type
             map = sensordb.get_map(metertype, building_name)
             if 'extra' in map:
-                for k,v in map['extra'].iteritems():
+                for k,v in map['extra'].items():
                     cf.set(meter_path, k, v)
 
 
@@ -236,6 +236,6 @@ elif opts.load:
 #                 print '/' + obvius.to_pathname(k) + '/' + obvius.to_pathname(v.keys()[0]) + ',' + k
 
 elif opts.db:
-    print "generate sensordb"
-    for location, devs in devices.iteritems():
-        print devs
+    print("generate sensordb")
+    for location, devs in devices.items():
+        print(devs)

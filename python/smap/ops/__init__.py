@@ -44,7 +44,7 @@ __all__ = [
     'smap.ops.ts',
     'smap.ops.tags',
     ]
-map(__import__, __all__)
+list(map(__import__, __all__))
 
 installed_ops = {}
 

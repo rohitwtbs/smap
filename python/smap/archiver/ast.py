@@ -168,7 +168,7 @@ class Statement(object):
     
 
 if __name__ == '__main__':
-    import queryparse
+    from . import queryparse
     import uuid
     from smap import util
 #
@@ -186,8 +186,8 @@ if __name__ == '__main__':
                  'Foo': 'bar',
                  'Properties/Timezone': 'America/Los_Angeles'}],)
 # print c.get_restrictions(util.SetDict(op.restrict))
-    print op
-    print c
+    print(op)
+    print(c)
     # print util.SetDict(op.restrict)
 
 

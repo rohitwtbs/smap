@@ -38,6 +38,7 @@ support operation in either dimension (where possible).
 
 from smap import operators
 import numpy as np
+from functools import reduce
 
 def vector_operator_factory(name, op, constructors=[()], block_streaming=True):
     """Make a new vector operator class (type) from its name and operator"""
@@ -52,8 +53,8 @@ def vector_operator_factory(name, op, constructors=[()], block_streaming=True):
             klass.block_streaming = block_streaming
             return klass
 
-    class Op(operators.VectorOperator):
-        __metaclass__ = Metaclass
+    class Op(operators.VectorOperator, metaclass=Metaclass):
+        pass
 
     return Op
 

@@ -99,7 +99,7 @@ class VaisalaDriver(SmapDriver):
             self.log.debug("Read: " + line)
             try:
                 self.process(line)
-            except Exception, e:
+            except Exception as e:
                 self.log.error("Error in update: " + str(e))
 
         def process(self, line):
@@ -108,13 +108,13 @@ class VaisalaDriver(SmapDriver):
             def proc_field(f):
                 v = f.split('=')
                 return (v[0], (v[1][:-1], v[1][-1]))
-            data = dict(map(proc_field, fields[1:]))
+            data = dict(list(map(proc_field, fields[1:])))
 
-            if VAISALA_POINTS.has_key(reg):
+            if reg in VAISALA_POINTS:
                 ts = int(time.time())
                 point = VAISALA_POINTS[reg][0]
                 # create the point in the smap tree if necessary
-                for k,v in VAISALA_POINTS[reg][1].iteritems():
+                for k,v in VAISALA_POINTS[reg][1].items():
                     unit = VAISALA_UNITS[reg][data[v[0]][1]]
                     path = '/%s/%s' % (point, k)
                     if not self.inst.lookup(path):

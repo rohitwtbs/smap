@@ -32,13 +32,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import sys
 import traceback
-import urlparse
+import urllib.parse
 import json
 import copy
 import uuid
 import pprint
 
-from zope.interface import implements
+from zope.interface import implementer
 from twisted.web import resource, server, proxy
 from twisted.web.resource import NoResource
 from twisted.internet import reactor, task
@@ -46,12 +46,12 @@ from twisted.internet import reactor, task
 from twisted.web.client import getPage
 from twisted.python import log
 
-from interface import *
-from server import RootResource, InstanceResource, ReportingResource
-import core
-import util
-import reporting
-import schema
+from .interface import *
+from .server import RootResource, InstanceResource, ReportingResource
+from . import core
+from . import util
+from . import reporting
+from . import schema
 
 PROXY_ORIGS = [('p0', 'http://localhost:8080')] #, ('p0', 'http://localhost:8080?q=dummy')]
     
@@ -110,18 +110,18 @@ class SmapProxyEntity(resource.Resource):
         def successCb(resp):
             resp = json.loads(resp)
             try:
-                url = urlparse.urlparse(self.url)
+                url = urllib.parse.urlparse(self.url)
                 try:
                     self.host, self.port = url.netloc.split(':')
                     self.rpath = url.path
                     self.port = int(self.port)
-                except Exception, e:
+                except Exception as e:
                     log.err()
                     self.host, self.port = url.netloc, 80
                     self.rpath = '/'
                 self.update(resp)
                 return self
-            except Exception, e:
+            except Exception as e:
                 return None
 
         d.addCallback(successCb)
@@ -165,11 +165,12 @@ class ProxyResource(resource.Resource):
         return server.NOT_DONE_YET
 
     def render_POST(self, request):
-        map(self.update_proxy, PROXY_ORIGS)
+        list(map(self.update_proxy, PROXY_ORIGS))
         request.finish()
         return server.NOT_DONE_YET
 
-    def update_proxy(self, (name, url)):
+    def update_proxy(self, xxx_todo_changeme):
+        (name, url) = xxx_todo_changeme
         this_inst = SmapProxyEntity(self.inst, name)
         d = this_inst.load(url)
         def rootCb(mgr):
@@ -194,11 +195,11 @@ class PublishResource(resource.Resource):
 def getSite(inst):
     root = RootResource(value=['data', 'reports', 'proxy', 'publish'])
     pr = ProxyResource(inst)
-    root.putChild('data', InstanceResource(inst))
-    root.putChild('proxy', pr)
-    root.putChild('reports', ReportingResource(inst.reports))
-    root.putChild('publish', PublishResource(inst))
-    map(pr.update_proxy, PROXY_ORIGS)
+    root.putChild(b'data', InstanceResource(inst))
+    root.putChild(b'proxy', pr)
+    root.putChild(b'reports', ReportingResource(inst.reports))
+    root.putChild(b'publish', PublishResource(inst))
+    list(map(pr.update_proxy, PROXY_ORIGS))
     return server.Site(root)
 
 if __name__ == '__main__':

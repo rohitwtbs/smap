@@ -42,8 +42,8 @@ from smap.contrib import dtutil
 import OpenOPC
 
 # properties not to add as metadata
-PROP_FILTER_LIST = [u"Item Timestamp",
-                    u"Item Value"]
+PROP_FILTER_LIST = ["Item Timestamp",
+                    "Item Value"]
 def exclude(key):
     for exclude in PROP_FILTER_LIST:
        if key.find(exclude) >= 0: return True
@@ -62,7 +62,7 @@ class Driver(SmapDriver):
         if opts.get('OpcPointFile', None):
             with open(opts.get('OpcPointFile'), 'r') as fp:
                 self.points = self.parse_pointfile(fp)
-        print self.points.keys()
+        print(list(self.points.keys()))
 
     def start(self):
         self.connect()
@@ -93,11 +93,11 @@ class Driver(SmapDriver):
         return pointdfns
             
     def connect(self):
-        print "attempting OPC connection to", self.opc_name
+        print("attempting OPC connection to", self.opc_name)
         self.opc = OpenOPC.client()
         self.opc.connect(self.opc_name, self.opc_host)
-        props = self.opc.properties(self.points.keys())
-        print "loaded", len(props), "properties"
+        props = self.opc.properties(list(self.points.keys()))
+        print("loaded", len(props), "properties")
         points = {}
         for point, pid, key, val in props:
             name = self.make_path(point)
@@ -107,23 +107,23 @@ class Driver(SmapDriver):
                 points[name]['OpcDA/' + key] = str(val)
 
         # try to make some sense out of the metadata
-        for name, meta in points.iteritems():
+        for name, meta in points.items():
             unit = str(meta.get('OpcDA/' + self.unit_tag, 'None'))
             dtype = meta.get('OpcDA/Item Canonical DataType', None)
             if not dtype:
-                print "no datatype tag in", name
+                print("no datatype tag in", name)
                 continue
             if dtype.startswith('VT_R'):
                 dtype = 'double'
             elif dtype.startswith('VT_U') or dtype.startswith('VT_I'):
                 dtype = 'long'
             else:
-                print "skipping", name, "since cannot find data type"
+                print("skipping", name, "since cannot find data type")
                 continue
             if not self.get_timeseries(name):
                 self.add_timeseries(name, unit, data_type=dtype)
                 self.set_metadata(name, points[name])
-        vals = self.opc.read(self.points.keys(), group="smap-points-group")
+        vals = self.opc.read(list(self.points.keys()), group="smap-points-group")
 
     def _update(self):
         vals = self.opc.read(group="smap-points-group")

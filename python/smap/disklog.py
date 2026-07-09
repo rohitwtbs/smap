@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 import os
-import util
+from . import util
 import time
 from twisted.python import log
 
@@ -61,7 +61,7 @@ class DiskLog:
     def _read_seqno(self, seq):
         try:
             return util.pickle_load(os.path.join(self.dirname, snp(seq)))
-        except IOError, e:
+        except IOError as e:
             log.err("Warning: got exception reading sequence number: " + str(e))
             return None
 
@@ -168,7 +168,7 @@ class DiskLog:
         if not hasattr(self, 'max_age') or self.max_age == None: return
         seqno = self.meta['head']
         now = time.time()
-        for seqno in xrange(self.meta['head'], self.meta['tail'] + 1):
+        for seqno in range(self.meta['head'], self.meta['tail'] + 1):
             try:
                 mtime = os.path.getmtime(os.path.join(self.dirname, 
                                                       snp(self.meta['head'])))

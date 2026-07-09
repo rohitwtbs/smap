@@ -79,12 +79,12 @@ class SmapJobsManager:
                 path = action['Path']
                 state = action['State']
                 actuator = self.inst.get_timeseries(path)
-                print 'Setting', path, 'to', state
+                print('Setting', path, 'to', state)
                 actuator.impl.set_state(None, state)
 
         # queue the callback
         j.d_outer.addCallback(act)
-        print 'Added callback to', j.d_outer
+        print('Added callback to', j.d_outer)
 
         if not j.after:
             # job_id will let you cancel it
@@ -97,7 +97,7 @@ class SmapJobsManager:
     def cancel_job(self, uuids):
         uuids = set(uuids)
         for uuid in uuids:
-            print 'Cancelling job', uuid
+            print('Cancelling job', uuid)
             try:
                 call_id = self._job_ids[uuid]
                 call_id.cancel()

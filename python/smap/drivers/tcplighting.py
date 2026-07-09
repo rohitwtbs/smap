@@ -29,7 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 @author Gabe Fierro <gt.fierro@berkeley.edu>
 """
-import os, requests, __builtin__
+import os, requests, builtins
 from smap import actuate, driver
 from smap.util import periodicSequentialCall
 from smap.contrib import dtutil
@@ -38,7 +38,7 @@ import json
 import time
 
 import requests
-from urllib2 import quote, unquote
+from urllib.parse import quote, unquote
 from lxml import etree
 
 URL = 'http://192.168.1.178/'
@@ -93,8 +93,8 @@ def get_states(posturl, token):
     device_ids = [x.find('did').text for x in devices]
     states = [x.find('state').text for x in devices]
     power = [x.find('power').text for x in devices]
-    levels = map(lambda x: x.text, filter(lambda x: x is not None, [x.find('level') for x in devices]))
-    return zip(device_ids, states, power, levels)
+    levels = [x.text for x in [x for x in [x.find('level') for x in devices] if x is not None]]
+    return list(zip(device_ids, states, power, levels))
 
 def get_deviceinfo(posturl, token):
     resp = requests.post(posturl, headers=headers, data=command('GWRBatch',commands['Info'].format(token=token)))
@@ -105,7 +105,7 @@ def get_deviceinfo(posturl, token):
     readings = [x.findall('cmd') for x in devices]
     values = [int(x[0].getchildren()[1].text) for x in readings]
     levels = [int(x[1].getchildren()[1].text) for x in readings]
-    return zip(device_ids, values, levels)
+    return list(zip(device_ids, values, levels))
 
 class TCP(driver.SmapDriver):
     def setup(self, opts):
@@ -129,7 +129,7 @@ class TCP(driver.SmapDriver):
     def read(self):
         devices = get_states(self.posturl, self.token)
         for device in devices:
-            print '/'+str(device[0])+'/state'
+            print('/'+str(device[0])+'/state')
             self.add('/'+str(device[0])+'/state',int(device[1]))
             self.add('/'+str(device[0])+'/power',float(device[2]))
             level = int(device[3]) if int(device[1]) else 0
@@ -162,7 +162,7 @@ class BrightnessActuator(TCPLActuator, actuate.ContinuousIntegerActuator):
         TCPLActuator.__init__(self, **opts)
 
     def set_state(self, request, state):
-        print request, state
+        print(request, state)
         if int(state) > 100:
             state = 100
         elif int(state) < 0:

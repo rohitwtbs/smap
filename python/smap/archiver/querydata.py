@@ -33,7 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 import time
 import operator
 
-from data import data_load_result
+from .data import data_load_result
 
 class Request():
     args = {}
@@ -41,15 +41,15 @@ class Request():
         return str(self.args)
 
     def return_data(self, data):
-        print "returned data chunk"
-        print data
+        print("returned data chunk")
+        print(data)
 
 def _extract_data(data):
-    print "ext data", data
+    print("ext data", data)
     return data[1]
 
 def _errback(error):
-    print error
+    print(error)
 
 def extract_data(streams, method, start, end, limit=10, streamlimit=10, ndarray=False):
     request = Request()

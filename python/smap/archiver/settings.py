@@ -39,6 +39,16 @@ from twisted.internet import reactor
 from twisted.python import log
 
 
+class _NullMetrics(object):
+    """No-op metrics sink used when statsd is not configured."""
+    def increment(self, *args, **kwargs): pass
+    def decrement(self, *args, **kwargs): pass
+    def gauge(self, *args, **kwargs): pass
+    def timing(self, *args, **kwargs): pass
+    def meter(self, *args, **kwargs): pass
+
+metrics = _NullMetrics()
+
 def setup_statsd(config):
     from txstatsd.client import TwistedStatsDClient, StatsDClientProtocol
     from txstatsd.metrics.metrics import Metrics

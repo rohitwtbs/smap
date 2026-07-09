@@ -32,16 +32,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os
 
-from zope.interface import implements
+from zope.interface import implementer
 from twisted.internet import defer, protocol, task, reactor
 from twisted.web.iweb import UNKNOWN_LENGTH, IBodyProducer
 from twisted.web.client import ResponseDone
 
-import cStringIO as StringIO
+import io as StringIO
 
 # Backport of
 # svn://svn.twistedmatrix.com/svn/Twisted/trunk@32157 bbbe8e31-12d6-0310-92fd-ac37d47ddeeb
 # 
+@implementer(IBodyProducer)
 class FileBodyProducer(object):
     """
     L{FileBodyProducer} produces bytes from an input file object incrementally
@@ -63,7 +64,6 @@ class FileBodyProducer(object):
 
     @ivar _readSize: The number of bytes to read from C{_inputFile} at a time.
     """
-    implements(IBodyProducer)
 
     def __init__(self, inputFile, cooperator=task, readSize=2 ** 16):
         self._inputFile = inputFile

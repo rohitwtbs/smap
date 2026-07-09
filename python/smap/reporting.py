@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 import os
-import urlparse
+import urllib.parse
 
 from twisted.internet import reactor, task, defer, threads
 from twisted.internet.endpoints import TCP6ClientEndpoint
@@ -41,10 +41,10 @@ from twisted.web.http_headers import Headers
 from twisted.python import log
 import logging
 
-import util
-import disklog
-import sjson as json
-from contrib import client
+from . import util
+from . import disklog
+from . import sjson as json
+from .contrib import client
 from smap.formatters import get_formatter
 from smap.iface.plotly import PlotlyStream
 
@@ -63,12 +63,12 @@ REPORT_RECORD_LIMIT = 10000
 def reporting_copy(obj):
     if isinstance(obj, dict):
         rv = dict(obj)
-        for k in rv.keys():
+        for k in list(rv.keys()):
             rv[k] = reporting_copy(rv[k])
         return rv
     elif isinstance(obj, list):
         rv = list(obj)
-        for i in xrange(0, len(rv)):
+        for i in range(0, len(rv)):
             rv[i] = reporting_copy(rv[i])
         return rv
     else:
@@ -91,14 +91,14 @@ def reporting_map(rpt, col_cb, ts_cb):
             ts_cb(cur_path, cur)
         del rpt[cur_path]
 
-    for p, v in rpt.iteritems():
+    for p, v in rpt.items():
         if 'Contents' in v:
             col_cb(p, v)
         else:
             ts_cb(p, v)
 
 def is_https_url(url):
-    return urlparse.urlparse(url).scheme == 'https'
+    return urllib.parse.urlparse(url).scheme == 'https'
 
 class Agent6(Agent):
     def _getEndpoint(self, uri):
@@ -221,7 +221,7 @@ class MongoReportInstance(dict):
     def __init__(self, datadir, *args):
         from pymongo import MongoClient
         dict.__init__(self, *args)
-        u = urlparse.urlparse(self['ReportDeliveryLocation'][0])
+        u = urllib.parse.urlparse(self['ReportDeliveryLocation'][0])
         url, port = u.netloc.split(':')
         self['MongoClient'] = MongoClient(url, int(port))
         if 'MongoDatabaseName' not in self:
@@ -262,7 +262,7 @@ class MongoReportInstance(dict):
                     v = {'time': latest[0], 'value': latest[1], 'uuid': str(d['uuid']), 'Path': key}
                     log.msg(v)
                     self.insert_or_update(v)
-                except Exception, e:
+                except Exception as e:
                     log.msg(e)
         self['PendingData'].truncate()
         if len(self['PendingData']) > 0:
@@ -367,7 +367,7 @@ class HttpReportInstance(dict):
                 (self['ReportDeliveryLocation'][self['ReportDeliveryIdx']],
                  len(data), 
                  str([len(x['Readings']) 
-                      for x in data.itervalues() 
+                      for x in data.values() 
                       if 'Readings' in x])),
                 logLevel=logging.DEBUG)
         # set up an agent to push the data to the consumer
@@ -403,10 +403,10 @@ class PlotlyReportInstance(dict):
     def __init__(self, datadir, *args):
         dict.__init__(self, *args)
         self['PendingData'] = DataBuffer(datadir)
-        u = urlparse.urlparse(self['ReportDeliveryLocation'][0])
+        u = urllib.parse.urlparse(self['ReportDeliveryLocation'][0])
         uri = "http://" + u.netloc 
         streamid = u.path.lstrip('/')
-        print "Publishing plot.ly stream to", uri, "streamid:", streamid
+        print("Publishing plot.ly stream to", uri, "streamid:", streamid)
         self['Publisher'] = PlotlyStream(streamid, uri)
 
     @staticmethod
@@ -428,14 +428,14 @@ class PlotlyReportInstance(dict):
             log.msg("Plotly only supports a single stream -- specify a resource")
             return
         else:
-            data = data.values()[0]
+            data = list(data.values())[0]
             if 'Readings' in data:
                 for ts, val in data['Readings']:
                     self['Publisher'].add(ts, val)
             
 
 def get_report_class(deliver_locations):
-    deliverylocs = map(urlparse.urlparse, deliver_locations)
+    deliverylocs = list(map(urllib.parse.urlparse, deliver_locations))
     report_instance = None
     for report_class in [HttpReportInstance, PlotlyReportInstance, MongoReportInstance]:
         if report_class.accepts(deliverylocs):
@@ -484,11 +484,11 @@ class Reporting:
     def add_report(self, rpt):
         dir = os.path.join(self.reportfile + '-reports',
                            str(rpt['uuid']))
-        rpt['ReportDeliveryLocation'] = map(str, rpt['ReportDeliveryLocation'])
+        rpt['ReportDeliveryLocation'] = list(map(str, rpt['ReportDeliveryLocation']))
 
         report_class = get_report_class(rpt['ReportDeliveryLocation'])
         if report_class == None:
-            print "No report deliverer found for " + str(rpt['ReportDeliveryLocation'])
+            print("No report deliverer found for " + str(rpt['ReportDeliveryLocation']))
             return 
         else:
             report_instance = report_class(dir, rpt)
@@ -499,7 +499,7 @@ class Reporting:
 
         # publish the full data set when we add a subscription so we
         # can compress from here
-        for k, v in self.inst.lookup(report_instance['ReportResource']).iteritems():
+        for k, v in self.inst.lookup(report_instance['ReportResource']).items():
             self.publish(k, v)
 
     def del_report(self, id):
@@ -529,7 +529,7 @@ class Reporting:
             sub['Topics'] = set([getattr(result, 'path')])
         elif isinstance(result, dict):
             # is a dict of {path: value}
-            sub['Topics'] = set(result.iterkeys())
+            sub['Topics'] = set(result.keys())
         else:
             # is nothing
             sub['Topics'] = set()
@@ -537,7 +537,7 @@ class Reporting:
     def update_subscriptions(self):
         """Should be called whenever the set of resources changes so we can
         update the list of uuids for each subscriber."""
-        map(self._update_subscriptions, self.subscribers)
+        list(map(self._update_subscriptions, self.subscribers))
 
     def publish(self, path, val, prepend=False):
         """Publish a new reading to the stream identified by a path.
@@ -597,7 +597,7 @@ class Reporting:
                 # cleanup
                 deferList.append(d)
 
-        map(self.del_report, deleteList)
+        list(map(self.del_report, deleteList))
         d = defer.DeferredList(deferList, fireOnOneErrback=True, consumeErrors=True)
         if force: d.addBoth(self.save_reports)
         return d

@@ -32,7 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os, sys
 import uuid
-import ConfigParser
+import configparser
 import configobj
 
 try:
@@ -40,11 +40,11 @@ try:
 except ImportError:
     import collections as ordereddict
 
-import core
-import util
-import driver
-import smapconf
-import checkers
+from . import core
+from . import util
+from . import driver
+from . import smapconf
+from . import checkers
 
 class SmapLoadError(core.SmapException):
     """An error was encountered loading a config file"""
@@ -68,7 +68,7 @@ def _save_path(conf, inst, path):
     if conf.get(path, "type") == "Timeseries":
         conf.set(path, "BufferSize", str(cur['Readings'].size))
 
-    for k, v in cur.iteritems():
+    for k, v in cur.items():
         if k in ['uuid', 'Readings', 'Proxy', 'Contents']: continue
         for (name, value) in  util.buildkv(k, v):
             conf.set(path, name, value)
@@ -80,19 +80,19 @@ def dump(inst, file):
 :param string file: config filename
 :raises IOError: if writing to the file fails
 """
-    conf = ConfigParser.ConfigParser('', ordereddict.OrderedDict)
+    conf = configparser.ConfigParser('', ordereddict.OrderedDict)
     conf.optionxform = str
 
     q = ['/']
     while len(q) > 0:
         cur = inst.get_collection(q[0])
-        if cur and cur.has_key('Contents') and not q[0] in inst.drivers:
+        if cur and 'Contents' in cur and not q[0] in inst.drivers:
             for child in cur['Contents']:
                 q.append(util.norm_path(q[0] + '/' + child))
         _save_path(conf, inst, q[0])
 
         if conf.get(q[0], 'type') == 'Timeseries':
-            for k, v in core.Timeseries.DEFAULTS.iteritems():
+            for k, v in core.Timeseries.DEFAULTS.items():
                 if conf.has_option(q[0], k) and \
                         conf.get(q[0], k) == str(v):
                     conf.remove_option(q[0], k)
@@ -126,7 +126,7 @@ contain a ``uuid`` key to set the root identifier for the source.
         found = path
     if not found:
       raise Exception("Config file %s not found." % file)
-    print "Loading config file:", found
+    print("Loading config file:", found)
 
     conf = configobj.ConfigObj(found, indent_type='  ')
 
@@ -135,23 +135,23 @@ contain a ``uuid`` key to set the root identifier for the source.
     if 'server' in conf:
         smapconf.SERVER = util.dict_merge(smapconf.SERVER, 
                                           dict(((k.lower(), v) for (k, v) in 
-                                                conf['server'].iteritems())))
+                                                conf['server'].items())))
     if 'logging' in conf:
         smapconf.LOGGING = util.dict_merge(smapconf.LOGGING, 
                                            dict(((k.lower(), v) for (k, v) in 
-                                                 conf['logging'].iteritems())))
+                                                 conf['logging'].items())))
 
     # we need the root to have a uuid
     inst = core.SmapInstance(conf['/']['uuid'], **instargs)
     if 'Properties/Timezone' in conf['/']:
-        print "Setting default timezone to", conf['/']['Properties/Timezone']
+        print("Setting default timezone to", conf['/']['Properties/Timezone'])
         core.Timeseries.DEFAULTS['Properties/Timezone'] = conf['/']['Properties/Timezone']
 
     inst.loading = True
     reports = []
 
     for s in conf:
-        print "Loading section", s
+        print("Loading section", s)
         if s.startswith('report'):
             resource = conf[s].get('ReportResource', '/+')
             format = conf[s].get('Format', 'json')
@@ -159,7 +159,7 @@ contain a ``uuid`` key to set the root identifier for the source.
             max_age = int(max_age) if max_age != None else None
 
             dest = [conf[s]['ReportDeliveryLocation']]
-            for i in xrange(0, 10):
+            for i in range(0, 10):
                 if 'ReportDeliveryLocation%i' % i in conf[s]:
                     dest.append(conf[s]['ReportDeliveryLocation%i' % i])
 
@@ -184,7 +184,7 @@ contain a ``uuid`` key to set the root identifier for the source.
             # path sections must start with a '/'
             # other sections might be present and could be parsed by
             # other parts of the program
-            print "Warning: skipping section", s, "since it does not begin with a '/'"
+            print("Warning: skipping section", s, "since it does not begin with a '/'")
             continue
         elif len(sections) and not util.norm_path(s) in sections: 
             # skip all but the listed sections if we were asked to
@@ -193,7 +193,7 @@ contain a ``uuid`` key to set the root identifier for the source.
         s = util.norm_path(s)
 
         # build the UUID for the item
-        props = util.build_recursive(dict(conf[s].items()))
+        props = util.build_recursive(dict(list(conf[s].items())))
         id = None
         if 'uuid' in conf[s]:
             key = None
@@ -262,12 +262,12 @@ contain a ``uuid`` key to set the root identifier for the source.
 
         # Metadata and Description are shared between both Collections
         # and Timeseries
-        if props.has_key('Metadata'):
+        if 'Metadata' in props:
             # the driver may have added metadata; however config file
             # metadata overrides it
             c['Metadata'] = util.dict_merge(c.get('Metadata', {}),
                                             props['Metadata'])
-        if props.has_key('Description'):
+        if 'Description' in props:
             c['Description'] = props['Description']
         if key:
             setattr(c, 'key', key)

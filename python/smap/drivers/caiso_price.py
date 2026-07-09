@@ -37,8 +37,8 @@ Each price feed provides total price, loss price, energy price and congestion co
 '''
 
 import zipfile
-import urllib2
-import StringIO
+import urllib.request, urllib.error, urllib.parse
+import io
 import BeautifulSoup
 import datetime
 
@@ -48,7 +48,7 @@ import time
 import threading
 from operator import itemgetter, attrgetter
 
-from zope.interface import implements
+from zope.interface import implementer
 
 from smap.driver import SmapDriver
 from smap.util import periodicSequentialCall
@@ -90,7 +90,7 @@ class CaIsoPrice(SmapDriver):
 
   def get_readings(self, market, start_date, stop_date): 
     readings = {'total_price': [], 'loss': [], 'energy': [], 'congestion': []}
-    print "get_readings", market
+    print("get_readings", market)
     if market == 'DAM':
       q = 'PRC_LMP'
       m = 'DAM'
@@ -114,15 +114,15 @@ class CaIsoPrice(SmapDriver):
     h = None
     for d in [5, 20, 60]:
       try:
-        h = urllib2.urlopen(url, timeout=50)
+        h = urllib.request.urlopen(url, timeout=50)
         break
-      except urllib2.URLError:
+      except urllib.error.URLError:
         logging.warn("urlopen failed.")
       time.sleep(d)
     if h == None:
       raise Exception("Failed to open url: %s" % url)
 
-    z = zipfile.ZipFile(StringIO.StringIO(h.read()))
+    z = zipfile.ZipFile(io.StringIO(h.read()))
     xml = z.read(z.namelist()[0])
     b = BeautifulSoup.BeautifulSoup(xml)
 
@@ -155,22 +155,22 @@ class CaIsoPrice(SmapDriver):
       readings[key].append((timestamp, val))
 
 
-    num_readings = len(readings[readings.keys()[0]])
-    for k in readings.keys():
+    num_readings = len(readings[list(readings.keys())[0]])
+    for k in list(readings.keys()):
       if len(readings[k]) != num_readings:
         raise Exception('Missing readings')
 
-      readings[k] = sorted(readings[k], key=lambda (t, v): t)
+      readings[k] = sorted(readings[k], key=lambda t_v: t_v[0])
 
     return readings
 
   def poll_stream(self, market, load_old):
     def _push_data(readings, market): 
       # Zip together the values for all keys
-      for vals in zip(*readings.values()):
+      for vals in zip(*list(readings.values())):
         if vals[0][0] > self.last_reading[market]:
           # Add all smap points for this time
-          for (k,v) in zip(readings.keys(), vals):
+          for (k,v) in zip(list(readings.keys()), vals):
             logging.debug("add /%s/%s: %s" % (market, k, str(v)))
             self.add('/%s/%s' % (market, k), *v)
             self.last_reading[market] = vals[0][0]
@@ -183,7 +183,7 @@ class CaIsoPrice(SmapDriver):
         try:
           readings = self.get_readings(market, start, stop)
           _push_data(readings, market)
-        except Exception, e:
+        except Exception as e:
           logging.exception('Error getting reading')
 
     # Continuously get new data
@@ -202,6 +202,6 @@ class CaIsoPrice(SmapDriver):
         _push_data(readings, market)
         # self.last_reading = rt
 
-    except Exception, e:
+    except Exception as e:
       logging.exception('Error getting reading')
 

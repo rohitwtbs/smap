@@ -48,6 +48,7 @@ from smap.contrib import dtutil
 from twisted.spread import pb
 
 from dateutil.tz import gettz
+from functools import reduce
 
 # null vector with the right shape so we can index into it
 null = np.array([])
@@ -92,24 +93,23 @@ class Operator(object):
         self._has_pending = False
         self._pending = [null] * len(inputs)
 
-        uuids = map(operator.itemgetter('uuid'), inputs)
+        uuids = list(map(operator.itemgetter('uuid'), inputs))
 
         # auto-construct output ids if requested
         if outputs == OP_N_TO_1:
             self.outputs = [util.dict_all(inputs)]
             self.outputs[0]['uuid'] = reduce(lambda x, y: str(uuid.uuid5(y, x)), 
-                                             map(uuid.UUID, sorted(uuids)), 
+                                             list(map(uuid.UUID, sorted(uuids))), 
                                              self.name)
         elif outputs == OP_N_TO_N:
             self.outputs = copy.deepcopy(inputs)
-            for i, uid in enumerate(map(lambda x: str(uuid.uuid5(x, self.name)),
-                                        map(uuid.UUID, uuids))):
+            for i, uid in enumerate([str(uuid.uuid5(x, self.name)) for x in list(map(uuid.UUID, uuids))]):
                 self.outputs[i]['uuid'] = uid
         else:
             self.outputs = copy.deepcopy(outputs)
 
     def index(self, streamid):
-        for i in xrange(0, len(self.inputs)):
+        for i in range(0, len(self.inputs)):
             if self.inputs[i]['uuid'] == streamid:
                 return i
         return None
@@ -218,8 +218,8 @@ class OperatorDriver(driver.SmapDriver):
 
     def reset(self):
         """Reset all operators"""
-        for oplist in self.operators.itervalues():
-            for path, op in oplist.itervalues():
+        for oplist in self.operators.values():
+            for path, op in oplist.values():
                 op.reset()
 
     def _data(self, uuids, newdata, process=True):
@@ -239,7 +239,7 @@ class OperatorDriver(driver.SmapDriver):
                 data = np.reshape(data, (0, 2))
 
             # push all data through the appropriate operators
-            for addpath, op in self.operators[source_id].itervalues():
+            for addpath, op in self.operators[source_id].values():
                 op._push(source_id, data)
                 pushlist.add((addpath, op))
 
@@ -276,8 +276,8 @@ class OperatorDriver(driver.SmapDriver):
         self.cache = cache
 
         # create timeseries from cached operator state
-        for sid, oplist in self.operators.iteritems():
-            for path, op in oplist.itervalues():
+        for sid, oplist in self.operators.items():
+            for path, op in oplist.values():
                 self.add_operator(path, op)
 
     def start(self):
@@ -295,7 +295,7 @@ class OperatorDriver(driver.SmapDriver):
     def load(self, start_dt, end_dt, cache=True):
         """Load a range of time by pulling it from the database and
         pushing it through the operators"""
-        self.load_uids = self.operators.keys()
+        self.load_uids = list(self.operators.keys())
         self.start_dt, self.end_dt = start_dt, end_dt
         self.cache = cache
         return self.load_time_chunk(self)
@@ -335,7 +335,7 @@ class OperatorDriver(driver.SmapDriver):
         else:
             d.addCallback(self.load_crossection)
         def err(e):
-            print e
+            print(e)
         d.addErrback(err)
 
         return d
@@ -377,8 +377,8 @@ class GroupedOperatorDriver(OperatorDriver):
             groupitems[s[self.group]].append(s)
 
         # instantiate one operator per group with the appropriate inputs
-        for group, tags in groupitems.iteritems():
-            inputs = map(operator.itemgetter('uuid'), tags)
+        for group, tags in groupitems.items():
+            inputs = list(map(operator.itemgetter('uuid'), tags))
             op = self.operator_class(tags)
             path = '/' + util.str_path(group)
             self.add_operator(path, op)
@@ -394,7 +394,7 @@ def extend(a1, a2):
     """Extend data vector a1 with vector a2"""
     assert(len(a1) == len(a2))
     rv = [None] * len(a1)
-    for i in xrange(0, len(a2)):
+    for i in range(0, len(a2)):
         if a1[i].shape[0] == 0:
             rv[i] = a2[i]
         elif len(a2[i]):
@@ -407,8 +407,8 @@ def join_intersect(inputs, last=None):
     """Join together streams based on timestamps, throwing out places
     where they do not overlap"""
     times = reduce(lambda x, y: np.intersect1d(x, y[:,0]), inputs)
-    vals = map(lambda x: x[np.nonzero(np.in1d(x[:,0], times)), :][0]
-               if len(x) else null, inputs)
+    vals = [x[np.nonzero(np.in1d(x[:,0], times)), :][0]
+               if len(x) else null for x in inputs]
     return vals 
 
 def join_union(inputs):
@@ -429,7 +429,7 @@ def join_union(inputs):
 
 def transpose_streams(inputs):
     """Takes aligned inputs and returns a matrix with t, v1, v2, ... vN"""
-    data = np.hstack(map(lambda x: x[:, 1:], inputs))
+    data = np.hstack([x[:, 1:] for x in inputs])
     return np.vstack((inputs[0][:, 0], data.T)).T
 
 
@@ -463,7 +463,7 @@ class parallelize(object):
     def __call__(self, inputs):
         rv = [None] * self.n
         assert self.n == len(inputs)
-        for i in xrange(0, self.n):
+        for i in range(0, self.n):
             opdata = self.operator(inputs[i], *self.opargs, **self.state[i])
             if isinstance(opdata, tuple):
                 rv[i], self.state[i] = opdata
@@ -496,8 +496,7 @@ class VectorOperator(Operator):
         initargs['axis'] = self.axis
         self.name = "%s(%s)" % (self.name, 
                                 ",".join(list(map(str, opargs)) +
-                                         map(lambda (k, v): str(k) + "=" + str(v), 
-                                             initargs.iteritems())))
+                                         [str(k_v[0]) + "=" + str(k_v[1]) for k_v in iter(initargs.items())]))
 
         # if we operate in parallel then we also produce n output
         # operators
@@ -527,10 +526,10 @@ class CompositionOperator(Operator):
             op = opclass(_inputs)
             self.ops.append(op)
             _inputs = op.outputs
-        self.required_tags = set.union(*map(lambda x: x.required_tags, self.ops))
-        self.optional_tags = set.union(*map(lambda x: x.optional_tags, self.ops))
+        self.required_tags = set.union(*[x.required_tags for x in self.ops])
+        self.optional_tags = set.union(*[x.optional_tags for x in self.ops])
         self.block_streaming = reduce(operator.__or__,
-                                      map(operator.attrgetter('block_streaming'), self.ops))
+                                      list(map(operator.attrgetter('block_streaming'), self.ops)))
 
         Operator.__init__(self, inputs, _inputs)
 

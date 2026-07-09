@@ -40,8 +40,8 @@ def db_add(dbp, streamid, data):
         raise Exception
 
     try:
-        for i in xrange(0, len(data), 1000):
-            clauses = map(lambda x: _mk_insert(streamid, x), data[i:i+1000])
+        for i in range(0, len(data), 1000):
+            clauses = [_mk_insert(streamid, x) for x in data[i:i+1000]]
             cursor.execute(istmt + ','.join(clauses) + ';')
         dbp.commit()
     except:

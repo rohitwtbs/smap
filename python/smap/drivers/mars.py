@@ -67,11 +67,11 @@ class CuriosityWeather(SmapDriver):
         date = time.strptime(root.find("terrestrial_date").text, "%b %d, %Y")
         date = calendar.timegm(date)
 
-        for stream in self.FIELDS.iterkeys():
+        for stream in self.FIELDS.keys():
             self._add('/' + stream, date, float(magnitudes.find(stream).text))
 
     def setup(self, opts):
-        for stream, meta in self.FIELDS.iteritems():
+        for stream, meta in self.FIELDS.items():
             self.add_timeseries('/' + stream, meta[0],
                                 data_type='double',
                                 timezone='Utc')

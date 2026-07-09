@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 sMAP feed for BPA Total Wind, Hydro, and Thermal Generation.
 @author Gabe Fierro
 '''
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 import logging
 from smap.driver import SmapDriver
@@ -59,10 +59,10 @@ class BPADriver(SmapDriver):
 		
 	def read(self):
 		object_ = {}
-		print 'read running'
+		print('read running')
 		try:
 			#get the text from the ur
-			wa = urllib2.urlopen('http://transmission.bpa.gov/business/operations/wind/baltwg.txt')
+			wa = urllib.request.urlopen('http://transmission.bpa.gov/business/operations/wind/baltwg.txt')
 			data = [line for line in wa.readlines()[7:] if len(line.split()) > 3]
 			#parse most recent data
 			rawTime = " ".join(data[-1].split()[:2])
@@ -73,7 +73,7 @@ class BPADriver(SmapDriver):
 			object_["Load"] = data[-1].split()[2]
 		except Exception as e:
 			logging.exception(type(e))
-			print e
+			print(e)
 		else:
 			if currentTime != self.previousTime:
 				self.w.add(currentTime,int(object_["Wind"]))

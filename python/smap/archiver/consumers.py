@@ -35,7 +35,7 @@ import math
 import datetime
 
 from twisted.internet import interfaces, reactor
-from zope.interface import implements
+from zope.interface import implementer
 
 from smap.contrib import dtutil
 import smap.sjson as json
@@ -66,8 +66,8 @@ def make_time_formatter(request, stags):
     else:
         return lambda x: str(int(x))
 
+@implementer(interfaces.IConsumer)
 class JsonConsumer(object):
-    implements(interfaces.IConsumer)
 #    implements(interfaces.IPushProducer)
 
     def __init__(self, consumer):
@@ -98,8 +98,8 @@ class JsonConsumer(object):
     def stopProducing(self):
         self.producer.stopProducing()
 
+@implementer(interfaces.IConsumer)
 class CsvConsumer(object):
-    implements(interfaces.IConsumer)
 
     def __init__(self, consumer):
         self.consumer = consumer

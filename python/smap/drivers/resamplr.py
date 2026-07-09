@@ -33,7 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 import uuid
 import shelve
 import time
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import pprint
 import traceback
 import datetime
@@ -87,7 +87,7 @@ def _meter_sample(data,
             # otherwise produce a record if the endpoints are close to 
 
             accum += prev_data[1] - trianglestart[1]
-            print "add", prev[0], accum, trianglestart[0]
+            print("add", prev[0], accum, trianglestart[0])
             rv.append((dtutil.dt2ts(prev[0]), accum))
             prev_data = v
 

@@ -37,7 +37,7 @@ Known limitations: Require restart if additional z-wave devices are added and do
 """
 import time
 import json
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 from smap import driver, util
 
 class RazBerry(driver.SmapDriver):
@@ -48,7 +48,7 @@ class RazBerry(driver.SmapDriver):
 
     def getDevices(self,jsondata):
         """Get list of z-wave devices from json data from the RaZberry REST API"""
-        return jsondata["devices"].keys()
+        return list(jsondata["devices"].keys())
 
     def getDeviceDescription(self,jsondata,deviceid):
         """Generate a sensor description of a z-wave device from json data from the RaZberry REST API"""
@@ -63,13 +63,13 @@ class RazBerry(driver.SmapDriver):
             for commandClass in ["49","48","128","50"]:
                 if commandClass in jsondata["devices"][deviceid]["instances"]["0"]["commandClasses"]:
                     try:
-                        response = urllib2.urlopen('http://' + self.ip + ':8083/ZWaveAPI/Run/devices[' + deviceid + '].instances[0].commandClasses[' + commandClass + '].Get()')                
-                    except urllib2.HTTPError, e:
-                        print "HTTPError - updateSensorValues: " + str(e)
-                    except urllib2.URLError, e:
-                        print "URLError - updateSensorValues: " + str(e)
-                    except httplib.HTTPException, e:
-                        print "HTTPException - updateSensorValues: " + str(e)
+                        response = urllib.request.urlopen('http://' + self.ip + ':8083/ZWaveAPI/Run/devices[' + deviceid + '].instances[0].commandClasses[' + commandClass + '].Get()')                
+                    except urllib.error.HTTPError as e:
+                        print("HTTPError - updateSensorValues: " + str(e))
+                    except urllib.error.URLError as e:
+                        print("URLError - updateSensorValues: " + str(e))
+                    except httplib.HTTPException as e:
+                        print("HTTPException - updateSensorValues: " + str(e))
 
     def readSensorValues(self,jsondata):
         """Interprete json data from the RaZberry REST API"""
@@ -174,12 +174,12 @@ class RazBerry(driver.SmapDriver):
         self.readrate = int(opts.get('readrate', self.readrate))
         self.tz = opts.get('Metadata/Timezone', None)
 
-        response = urllib2.urlopen('http://' + self.ip + ':8083/ZWaveAPI/Data/0')
+        response = urllib.request.urlopen('http://' + self.ip + ':8083/ZWaveAPI/Data/0')
         self.jsondata = json.loads(response.read())        
         sensors = self.getSensorDescriptions(self.jsondata) 
 
         for sensor in sensors:
-            print "Adding: " + str(sensor)
+            print("Adding: " + str(sensor))
             self.add_timeseries(sensor["name"].encode('ascii', 'ignore'), sensor["scale"].encode('ascii', 'ignore'), data_type='double', timezone=self.tz)
             self.set_metadata(sensor["name"].encode('ascii', 'ignore'), {'Instrument/RazBerry' : sensor["description"].encode('ascii', 'ignore')})
 
@@ -190,18 +190,18 @@ class RazBerry(driver.SmapDriver):
         self.updateSensorValues(self.jsondata)
 
         try:
-            response = urllib2.urlopen('http://' + self.ip + ':8083/ZWaveAPI/Data/0')        
+            response = urllib.request.urlopen('http://' + self.ip + ':8083/ZWaveAPI/Data/0')        
             self.jsondata = json.loads(response.read())
             sensorvalues = self.readSensorValues(self.jsondata)
             
             for sensor in sensorvalues:
                 self.add(sensor["name"],sensor["time"],float(sensor["value"]))
                 
-        except urllib2.HTTPError, e:
-            print "HTTPError - read: " + str(e)
-        except urllib2.URLError, e:
-            print "URLError - read: " + str(e)
-        except httplib.HTTPException, e:
-            print "HTTPException - read: " + str(e)
+        except urllib.error.HTTPError as e:
+            print("HTTPError - read: " + str(e))
+        except urllib.error.URLError as e:
+            print("URLError - read: " + str(e))
+        except httplib.HTTPException as e:
+            print("HTTPException - read: " + str(e))
 
 

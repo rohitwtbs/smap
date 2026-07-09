@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 import time
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import re
 import calendar
 from dateutil import parser
@@ -39,7 +39,7 @@ from dateutil import parser
 from smap.drivers.scraper import ScraperDriver
 from smap.contrib import dtutil
 
-urllib2.install_opener(urllib2.build_opener())
+urllib.request.install_opener(urllib.request.build_opener())
 
 class PJMDriver(ScraperDriver):
     """Periodically scrape data from PJM and publish it as sMAP feeds
@@ -52,7 +52,7 @@ class PJMDriver(ScraperDriver):
                  }
     
     def scrape(self):
-        pjm = urllib2.urlopen('http://www.pjm.com/pub/'
+        pjm = urllib.request.urlopen('http://www.pjm.com/pub/'
                               'account/lmpgen/lmppost.html')
         lines = pjm.readlines()
         pjm.close()
@@ -123,9 +123,9 @@ class PJMDriver(ScraperDriver):
         self.update_frequency = 300
         scraped = self.scrape()
         
-        for data_type in scraped.keys():
-            for location in scraped[data_type].keys():
-                for valtype in scraped[data_type][location].keys():
+        for data_type in list(scraped.keys()):
+            for location in list(scraped[data_type].keys()):
+                for valtype in list(scraped[data_type][location].keys()):
                     path = "/" + data_type + "/" + location + "/" + valtype
                     temp = self.add_timeseries(path, "PJM" + data_type + 
                                 location + valtype,

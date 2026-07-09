@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 @author Stephen Dawson-Haggerty <stevedh@eecs.berkeley.edu>
 """
 
-from zope.interface import Interface, implements
+from zope.interface import Interface, implementer
 
 class ITimeseries(Interface):
     """Represent a single time series -- one stream of scalars
@@ -71,7 +71,7 @@ class ITimeseriesFactory(Interface):
         @buffersz how many readings are stored in the Reading resource
         (for GET requests, reporting is handled separately).
         """
-        print "__CALL__"
+        print("__CALL__")
 
 class ICollection(Interface):
     """Represent a collection of resources, with attached metadata

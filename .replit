@@ -5,6 +5,35 @@ stack = "BEST_EFFORT_FALLBACK"
 
 [nix]
 channel = "stable-25_05"
+packages = ["gitFull", "glibcLocales", "libxcrypt", "openssl", "pkg-config", "xsimd"]
 
 [deployment]
 deploymentTarget = "cloudrun"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "sMAP Archiver"
+
+[[workflows.workflow]]
+name = "sMAP Archiver"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./start-archiver.sh"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"

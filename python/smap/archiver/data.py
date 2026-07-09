@@ -48,12 +48,12 @@ import smap.util as util
 import smap.sjson as json
 from smap.operators import null
 from smap.core import SmapException
-import settings
+from . import settings
 
 def makeErrback(request_):
     request = request_
     def errBack(outp):
-        print "ERRBACK:", outp
+        print("ERRBACK:", outp)
         try:
             request.setResponseCode(500)
             request.finish()
@@ -64,7 +64,10 @@ def escape_string(s):
     ## SDH : this is broken since it seems to use the default client
     ## encoding (latin-1 on my machine) even though we switch to UTF8
     ## otherwise.  
-    return psycopg2.extensions.QuotedString(s).getquoted()
+    quoted = psycopg2.extensions.QuotedString(s).getquoted()
+    if isinstance(quoted, bytes):
+        quoted = quoted.decode('utf-8')
+    return quoted
 
 class ReadingdbPool:
     def __init__(self):
@@ -74,7 +77,7 @@ class ReadingdbPool:
 
     def shutdown(self):
         log.msg("ReadingdbPool shutting down:", len(self.pool))
-        map(settings.rdb.db_close, self.pool)
+        list(map(settings.rdb.db_close, self.pool))
 
     def get(self):
         # print "connect", settings.READINGDB_HOST, settings.READINGDB_PORT
@@ -102,11 +105,11 @@ class SmapMetadata:
         """Set the metadata for a Timeseries object
         """
         tic = time.time()
-        for path, ts in obj.iteritems():
+        for path, ts in obj.items():
             if not util.is_string(path):
                 raise Exception("Invalid path: " + path)
 
-            tags = {u'Path': path} 
+            tags = {'Path': path} 
             for name, val in util.buildkv('', ts):
                 if name == 'Readings' or name == 'uuid': continue
                 if not (util.is_string(name) and util.is_string(val)):
@@ -142,7 +145,7 @@ class SmapData:
         divisor = settings.conf['readingdb']['divisor']
         try:
             r = rdb_pool.get()
-            for ts in obj.itervalues():
+            for ts in obj.values():
                 data = [(int(x[0] / divisor), 0, float(x[1])) 
                         for x in ts['Readings'] if x[0] > 0]
                 # print "add", len(data), "to", ids[ts['uuid']], data[0][0]
@@ -163,7 +166,7 @@ class SmapData:
     def _add_data(self, subid, ids, obj):
         """Store the data and metadata contained in a Timeseires
         """
-        ids = dict(zip(map(operator.itemgetter('uuid'), obj.itervalues()), ids))
+        ids = dict(list(zip(list(map(operator.itemgetter('uuid'), iter(obj.values()))), ids)))
         md = SmapMetadata(self.db)
         meta_deferred = md.add(subid, ids, obj)
         data_deferred = threads.deferToThread(self._add_data_real, ids, obj)        
@@ -183,7 +186,7 @@ class SmapData:
             d = self.db.runQuery(query)
             d.addCallback(lambda rv: self._run_create(uuids[100:],
                                                       result + newresult[0],
-                                                      map(list, rv),
+                                                      list(map(list, rv)),
                                                       start=tic))
             return d
         else:
@@ -195,7 +198,7 @@ class SmapData:
         """
         uuids = []
         query = "SELECT "
-        for ts in obj.itervalues():
+        for ts in obj.values():
             uuids.append("add_stream(%i, %s)" % (subid,
                                                  escape_string(ts['uuid'])))
     
@@ -242,7 +245,7 @@ class DataRequester:
         now = int(time.time()) * 1000
 
         self.streamids = streamids
-        ids = map(operator.itemgetter(1), streamids)
+        ids = list(map(operator.itemgetter(1), streamids))
         divisor = settings.conf['readingdb']['divisor']
 
         # args are a bit different for different requests
@@ -309,7 +312,8 @@ class DataRequester:
         return rv
 
 
-def send_result((request, result)):
+def send_result(xxx_todo_changeme):
+    (request, result) = xxx_todo_changeme
     request.write(json.dumps(result))
     request.finish()
 

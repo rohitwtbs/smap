@@ -81,7 +81,7 @@ class TimeseriesCache:
         key = "%i-%i" % (start, end)
         substream = str(substream)
         if len(data) == 0: return
-        if not self.cache.has_key(substream):
+        if substream not in self.cache:
             self.cache[substream] = {key:  data}
         else:
             # do this due to copy issues with shelve
@@ -106,7 +106,7 @@ class TimeseriesCache:
         if not substream in self.cache:
             return []
 
-        for k in sorted(self.cache[substream].keys(), key=lambda k: from_key(k)[0]):
+        for k in sorted(list(self.cache[substream].keys()), key=lambda k: from_key(k)[0]):
             (s,e) = from_key(k)
             key = None
             if s <= start and e > start:

@@ -35,8 +35,8 @@ import time
 import re
 import uuid
 import errno
-import cPickle as pickle
-import ConfigParser
+import pickle as pickle
+import configparser
 import traceback as trace
 import collections
 
@@ -55,8 +55,8 @@ class SmapSchemaException(SmapException):
     """Exception generated if a json object doesn't validate as the
 appropriate kind of schema"""
 
-is_string = lambda x: isinstance(x, str) or isinstance(x, unicode)
-is_integer = lambda x: isinstance(x, int) or isinstance(x, long)
+is_string = lambda x: isinstance(x, str) or isinstance(x, str)
+is_integer = lambda x: isinstance(x, int) or isinstance(x, int)
 def to_bool(s):
     if isinstance(s, bool): return s
     elif isinstance(s, int): return not s == 0
@@ -67,7 +67,7 @@ def now():
 
 def split_path(path):
     path = re.split('/+', path)
-    return filter(lambda x: len(x), path)
+    return [x for x in path if len(x)]
 
 def join_path(path):
     return '/' + '/'.join(path)
@@ -86,7 +86,7 @@ def find(f, lst):
 def buildkv(fullname, obj, separator='/'):
     if isinstance(obj, dict):
         rv = []
-        for newk, newv in obj.iteritems():
+        for newk, newv in obj.items():
             if len(fullname):
                 rv += buildkv(fullname + separator + newk, newv, separator)
             else:
@@ -98,12 +98,12 @@ def buildkv(fullname, obj, separator='/'):
 # make a nested object from a config file line
 def build_recursive(d, suppress=['type', 'key', 'uuid']):
     rv = {}
-    for k, v in d.iteritems():
+    for k, v in d.items():
         if k in suppress: continue
         pieces = k.split('/')
         cur = rv
         for cmp in pieces[:-1]:
-            if not cur.has_key(cmp):
+            if cmp not in cur:
                 cur[cmp] = {}
             cur = cur[cmp]
         cur[pieces[-1]] = v
@@ -115,7 +115,7 @@ def dict_merge(o1, o2):
     if not isinstance(o1, dict) or not isinstance(o2, dict): 
         return o2
     o2 = dict(o2)
-    for k, v in o1.iteritems():
+    for k, v in o1.items():
         if k in o2:
             o2[k] = dict_merge(v, o2[k])
         else:
@@ -123,13 +123,13 @@ def dict_merge(o1, o2):
     return o2
 
 def dict_all(dlist):
-    keys = set.intersection(*map(lambda x: set(x.iterkeys()), dlist))
+    keys = set.intersection(*[set(x.keys()) for x in dlist])
     keys = dict(((k, None) for k in keys))
     for t in dlist[1:]:
-        for k in keys.keys():
+        for k in list(keys.keys()):
             if t[k] != dlist[0][k]:
                 del keys[k]
-    return dict(((k, dlist[0][k]) for k in keys.iterkeys()))
+    return dict(((k, dlist[0][k]) for k in keys.keys()))
     
 def flatten(lst):
     rv = []
@@ -140,16 +140,16 @@ def flatten(lst):
 """Push all metadata down to the leaves and remove the collections
 """
 def push_metadata(rpt):
-    for k, v in rpt.iteritems():
+    for k, v in rpt.items():
         sp = split_path(k)
         if 'Readings' in v:
-            for i in xrange(0, len(sp)):
+            for i in range(0, len(sp)):
                 if join_path(sp[:i]) in rpt:
                     upobj = rpt[join_path(sp[:i])]
                     if 'Contents' in upobj:
                         del upobj['Contents']
                     v.update(dict_merge(upobj, v))
-    for k, v in rpt.items():
+    for k, v in list(rpt.items()):
         if not 'Readings' in v:
             del rpt[k]
 
@@ -226,7 +226,7 @@ def pickle_load(filename):
 
     try:
         return pickle.load(fp)
-    except (IOError, EOFError, pickle.PickleError), e:
+    except (IOError, EOFError, pickle.PickleError) as e:
         return None
     finally:
         fp.close()
@@ -240,12 +240,12 @@ def pickle_dump(filename, obj):
 
     try:
         fp = open(filename + '.tmp', 'wb')
-    except IOError, e:
+    except IOError as e:
         return
 
     try:
         pickle.dump(obj, fp, protocol=2)
-    except pickle.PickleError, TypeError:
+    except pickle.PickleError as TypeError:
         log.err()
     finally:
         os.fsync(fp)
@@ -254,13 +254,13 @@ def pickle_dump(filename, obj):
     try:
         # move it atomically if we were able to pickle the object
         os.rename(filename + '.tmp', filename)
-    except OSError, e:
+    except OSError as e:
         # Windows versions prior to Vista don't support atomic renames
         if e.errno != errno.EEXIST:
             raise
         os.remove(filename)
         os.rename(filename + '.tmp', filename)
-    except IOError, e:
+    except IOError as e:
         pass
 
 def periodicCallInThread(fn, *args):
@@ -367,7 +367,7 @@ class SetDict(dict):
             for k, v in args[0]:
                 self[k] = v
 
-        for k, v in kwargs.iteritems():
+        for k, v in kwargs.items():
             self[k] = v
 
     def __setitem__(self, i, y):
@@ -383,7 +383,7 @@ class SetDict(dict):
             return set([])
 
     def __iter__(self):
-        for k, s in self.iteritems():
+        for k, s in self.items():
             for v in s:
                 yield (k, v)
 
@@ -437,7 +437,7 @@ class RateLimiter:
         return allowed, rv
 
 def unicode_to_str(s):
-    if isinstance(s, unicode):
+    if isinstance(s, str):
         return s.encode("unicode-escape")
     else:
         return s

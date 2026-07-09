@@ -18,11 +18,11 @@ class ConsoleClient(cmd.Cmd):
         self.console = telnetlib.Telnet(host, port)
         self.console.read_until('Login:')
         self.console.write('admin\r\n')
-        print 'login'
+        print('login')
         self.console.read_until('Password:')
-        print 'password'
+        print('password')
         self.console.write('ucberkeley\r\n')
-        print 'wait'
+        print('wait')
         self.status()
 
     def read_from_console(self):

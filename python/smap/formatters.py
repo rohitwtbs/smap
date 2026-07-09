@@ -33,7 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 import re
 import zlib
 
-from zope.interface import implements
+from zope.interface import implementer
 from twisted.internet.task import cooperate
 from twisted.web import iweb
 
@@ -43,9 +43,9 @@ from smap.util import push_metadata, join_path, split_path
 from smap.contrib import dtutil
 # from smap.core import SmapException
 
+@implementer(iweb.IBodyProducer)
 class AsyncFormatter(object):
     """Boilerplate for an async producer"""
-    implements(iweb.IBodyProducer)
     content_encoding = None
 
     def __init__(self, value):
@@ -75,7 +75,7 @@ class StaticProducer(AsyncFormatter):
     BLKSZ = 1024
 
     def _produce(self):
-        for i in xrange(0, len(self._value), self.BLKSZ):
+        for i in range(0, len(self._value), self.BLKSZ):
             self._consumer.write(self._value[i:i+self.BLKSZ])
             yield None
 
@@ -86,7 +86,7 @@ class GzipJson(StaticProducer):
     def __init__(self, value):
         value = dumps(value)
         self._value = zlib.compress(value)
-        print "%i -> %i" % (len(value), len(self._value))
+        print("%i -> %i" % (len(value), len(self._value)))
         self.length = len(self._value)
 
 class GzipAvro(StaticProducer):
@@ -97,8 +97,8 @@ class GzipAvro(StaticProducer):
         json = dumps(value)
         avro = schema.dump_report(value)
         self._value = zlib.compress(avro)
-        print "json: %i gzip-json: %i avro: %i gzip-avro: %i" % (
-            len(json), len(zlib.compress(json)), len(avro), len(self._value))
+        print("json: %i gzip-json: %i avro: %i gzip-avro: %i" % (
+            len(json), len(zlib.compress(json)), len(avro), len(self._value)))
         self.length = len(self._value)
 
 class AsyncSmapToCsv(AsyncFormatter):
@@ -110,7 +110,7 @@ class AsyncSmapToCsv(AsyncFormatter):
         return ','.join([uid, path, str(int(val[0] / 1000)), str(val[1])])
 
     def _produce(self):
-        for path, val in self._value.iteritems():
+        for path, val in self._value.items():
             if not 'uuid' in val: continue
             self._consumer.write('\n'.join((AsyncSmapToCsv._format_point(path, 
                                                                          str(val['uuid']), 

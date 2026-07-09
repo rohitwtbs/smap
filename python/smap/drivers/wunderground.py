@@ -42,7 +42,7 @@ and add a query parameter with the station id.
 "Rate" [default 60] : number of seconds between polls.
 """
 
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import rfc822
 import datetime
 import time
@@ -117,7 +117,7 @@ class WunderGround(driver.SmapDriver):
                 local_time = get_val(dom, "observation_time")
                 reading_time = get_val(dom, "observation_time_rfc822")
                 tz = guess_timezone(local_time, reading_time)
-            except Exception, e:
+            except Exception as e:
                 tz = self.tz
                 log.err()
 
@@ -131,17 +131,17 @@ class WunderGround(driver.SmapDriver):
     def update(self):
         try:
             url = self.url + "?ID=" + self.id
-            fh = urllib2.urlopen(url, timeout=10)
-        except urllib2.URLError, e:
+            fh = urllib.request.urlopen(url, timeout=10)
+        except urllib.error.URLError as e:
             log.err("URLError getting reading: [%s]: %s" % (url, str(e)))
             return
-        except urllib2.HTTPError, e:
+        except urllib.error.HTTPError as e:
             log.err("HTTP Error: [%s]: %s" % (url, str(e)))
             return
 
         try:
             dom = parse(fh)
-        except ExpatError, e:
+        except ExpatError as e:
             log.err("Exception parsing DOM [%s]: %s" % (url, str(e)))
             return
 
@@ -151,7 +151,7 @@ class WunderGround(driver.SmapDriver):
         try:
             reading_time = rfc822.parsedate_tz(get_val(dom, "observation_time_rfc822"))
             reading_time = int(rfc822.mktime_tz(reading_time))
-        except Exception, e:
+        except Exception as e:
             log.err("Exception finding time [%s]: %s" % (url, str(e)))
             return
 

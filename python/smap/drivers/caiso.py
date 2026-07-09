@@ -33,11 +33,11 @@ modified to use ScraperDriver by:
 """
 
 import time
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 from smap.drivers.scraper import ScraperDriver
 
-urllib2.install_opener(urllib2.build_opener())
+urllib.request.install_opener(urllib.request.build_opener())
 
 class CaIsoDriver(ScraperDriver):
     """Periodically scrape data from CAISO and publish it as sMAP feeds
@@ -48,7 +48,7 @@ class CaIsoDriver(ScraperDriver):
                  }
     
     def scrape(self):
-        caiso = urllib2.urlopen('http://content.caiso.com/outlook/'
+        caiso = urllib.request.urlopen('http://content.caiso.com/outlook/'
                                                             'systemstatus.csv')
         lines = caiso.readlines()
         caiso.close()
@@ -72,9 +72,9 @@ class CaIsoDriver(ScraperDriver):
         self.update_frequency = 300
         scraped = self.scrape()
         
-        for data_type in scraped.keys():
-            for location in scraped[data_type].keys():
-                for valtype in scraped[data_type][location].keys():
+        for data_type in list(scraped.keys()):
+            for location in list(scraped[data_type].keys()):
+                for valtype in list(scraped[data_type][location].keys()):
                     path = "/" + data_type + "/" + location + "/" + valtype
                     temp = self.add_timeseries(path, "CAISO" + data_type + 
                                 location + valtype,

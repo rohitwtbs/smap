@@ -43,8 +43,8 @@ from twisted.web.http_headers import Headers
 from twisted.python import log
 from twisted.web import resource, server, proxy
 
-import util
-import sjson
+from . import util
+from . import sjson
 
 class SmapConsumer(resource.Resource):
     def __init__(self):
@@ -54,21 +54,21 @@ class SmapConsumer(resource.Resource):
     def add(self, report):
         try:
             util.push_metadata(report)
-        except Exception, e:
+        except Exception as e:
             traceback.print_exc()
-        for path, val in report.iteritems():
+        for path, val in report.items():
             with open('data/' + path.replace('/', '-'), 'a') as fp:
                 readings = val.pop('Readings')
                 if len(readings) == 0: continue
                 val.pop('uuid')
                 for k, v in util.buildkv('', val):
-                    print >>fp, "# %s = %s" % (k[1:], v)
+                    print("# %s = %s" % (k[1:], v), file=fp)
                 for rv in readings:
-                    print >>fp, rv['ReadingTime'], rv['Reading']
+                    print(rv['ReadingTime'], rv['Reading'], file=fp)
 
     isLeaf = True
     def render_POST(self, request):
-        print 
+        print() 
         obj = json.load(request.content)
         # pprint.pprint(obj)
         self.add(obj)

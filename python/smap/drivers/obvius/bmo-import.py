@@ -53,9 +53,9 @@ def next_day():
     global inst
     global days
 
-    print "\n\nSTARTING DAY (%i remaining)\n" % days
+    print("\n\nSTARTING DAY (%i remaining)\n" % days)
     tasks = []
-    for d in inst.drivers.itervalues():
+    for d in inst.drivers.values():
         if isinstance(d, bmo.BMOLoader):
             tasks.append(d.update(startdt, enddt))
 
@@ -78,7 +78,7 @@ def do_next_day(*args):
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print "\n\t%s <conf>\n" % sys.argv[0]
+        print("\n\t%s <conf>\n" % sys.argv[0])
 
     log.startLogging(sys.stdout)
 

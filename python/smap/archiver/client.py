@@ -31,12 +31,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 import sys
-import urllib2
-import urllib
+import urllib.request, urllib.error, urllib.parse
+import urllib.request, urllib.parse, urllib.error
 import operator
 import pprint
 import time
-from StringIO import StringIO
+from io import StringIO
 from warnings import warn
 
 import numpy as np
@@ -92,7 +92,7 @@ results together."""
                     rv[id]['Readings'].extend(v['Readings'])
                     del v['Readings']
                 rv[id] = util.dict_merge(rv[id], v)
-    return rv.values()
+    return list(rv.values())
 
 def make_qdict(key, private):
     """return a query dict to be passed with all requests"""
@@ -129,13 +129,13 @@ the result.
 :return: the parsed JSON object returned by the server
 """
         try:
-            fp = urllib2.urlopen(self.base + '/api/query?' + 
-                                 urllib.urlencode(make_qdict(self.key, self.private), 
+            fp = urllib.request.urlopen(self.base + '/api/query?' + 
+                                 urllib.parse.urlencode(make_qdict(self.key, self.private), 
                                                   doseq=True),
                                  data=q, 
                                  timeout=self.timeout)
             rv = parser(fp.read())
-        except urllib2.HTTPError, err:
+        except urllib.error.HTTPError as err:
             log.err("Bad request running query: ""%s"" " % q)
             raise SmapException("Archiver query HTTP request error %s" % err.code)
         fp.close()
@@ -146,7 +146,7 @@ the result.
         log.msg(where)
         tags = self.query('select %s where %s' % (tags, where))
         if not nest:
-            tags = map(lambda t: dict(util.buildkv('', t)), tags)
+            tags = [dict(util.buildkv('', t)) for t in tags]
         if asdict:
             tags = dict([(x['uuid'], x) for x in tags])
         return tags
@@ -168,7 +168,7 @@ the result.
             fetch_start, fetch_end = cached_data[idx][0][1], cached_data[idx+1][0][0]
             load_list.append([(fetch_start, fetch_end)])
         
-        return load_list, map(operator.itemgetter(1), cached_data[1:-1])
+        return load_list, list(map(operator.itemgetter(1), cached_data[1:-1]))
 
     @staticmethod
     def _parser(data):
@@ -202,7 +202,7 @@ uuids.  Attempts to use cached data and load missing data in parallel.
                 qdict['starttime'] = [str(region[0][0])]
                 qdict['endtime'] = [str(region[0][1])]
                 dlurl = str(self.base + '/api/data/uuid/' + u + '?' +
-                            urllib.urlencode(qdict, doseq=True))
+                            urllib.parse.urlencode(qdict, doseq=True))
                 if qdict['starttime'][0] != qdict['endtime'][0]:
                     region.append(dlurl)
                     urls.append(dlurl)
@@ -234,9 +234,9 @@ uuids.  Attempts to use cached data and load missing data in parallel.
 
             def interleave(x, y):
                 lst = [None] * (len(x) * 2 - 1)
-                for idx in xrange(0, len(x)):
+                for idx in range(0, len(x)):
                     lst[idx * 2] = x[idx]
-                for idx in xrange(0, len(y)):
+                for idx in range(0, len(y)):
                     lst[idx * 2 + 1] = y[idx]
                 return lst
             rv.append(np.vstack(interleave(loaddata, data[u][1])))
@@ -358,14 +358,14 @@ programs.  For instance::
                     self.client.datacb(obj)
                 else:
                     uuids, data = [], []
-                    for v in obj.itervalues():
+                    for v in obj.values():
                         if 'uuid' in v:
                             uuids.append(v['uuid'])
                             data.append(np.array(v['Readings']))
                     self.client.datacb(uuids, data)
             except:
                 log.err()
-                print line
+                print(line)
 
         def connectionLost(self, reason):
             self.client._failed()
@@ -400,7 +400,7 @@ before this connecting.
         """
         self.closing = False
         url = self.url + '/republish?' + \
-            urllib.urlencode(make_qdict(self.key, self.private), 
+            urllib.parse.urlencode(make_qdict(self.key, self.private), 
                              doseq=True)
 
         if not self.restrict:

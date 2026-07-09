@@ -80,7 +80,7 @@ class FileDriver(driver.SmapDriver):
         elif opts['model'] == 'discrete':
             act = DiscreteActuator(filename=filename, states=['cat', 'dog'])
         elif opts['model'] == 'continuous':
-            act = ContinuousActuator(filename=filename, range=map(float, opts.pop('range')))
+            act = ContinuousActuator(filename=filename, range=list(map(float, opts.pop('range'))))
             data_type = 'double'
         else:
             raise ValueError("Invalid actuator model: " + opts['model'])

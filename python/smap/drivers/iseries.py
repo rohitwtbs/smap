@@ -77,7 +77,7 @@ class IseriesSteam(driver.SmapDriver):
             reply = self.s.recv(1024)
             self.s.close()
             self.s = None
-        except IOError, e:
+        except IOError as e:
             log.err()
             return 
         else:

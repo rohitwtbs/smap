@@ -1,0 +1,19 @@
+[project]
+name = "repl-nix-workspace"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "autobahn>=26.6.2",
+    "avro>=1.12.1",
+    "configobj>=5.0.9",
+    "numpy>=2.5.1",
+    "ply>=3.11",
+    "psycopg2-binary>=2.9.12",
+    "pyopenssl>=26.3.0",
+    "python-dateutil>=2.9.0.post0",
+    "scipy>=1.18.0",
+    "service-identity>=26.1.0",
+    "twisted>=26.4.0",
+    "zope-interface>=8.5",
+]

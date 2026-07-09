@@ -32,10 +32,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import sys
 import pycurl
-import cStringIO as StringIO
+import io as StringIO
 import time
 from threading import Thread
-from Queue import Queue
+from queue import Queue
 
 from smap import sjson as json
 
@@ -93,7 +93,7 @@ def get(getspec, nconns=5, parser=json.loads, select_timeout=1.0, verbose=True):
     rv = []
     m = pycurl.CurlMulti()
     m.handles = []
-    for spec in xrange(nconns):
+    for spec in range(nconns):
         c = pycurl.Curl()
         c.fp = None
         c.setopt(pycurl.FOLLOWLOCATION, 1)
@@ -130,17 +130,17 @@ def get(getspec, nconns=5, parser=json.loads, select_timeout=1.0, verbose=True):
 
             for c, errno, errmsg in err_list:
                 m.remove_handle(c)
-                print "Failed: ", c.url, errno, errmsg
+                print("Failed: ", c.url, errno, errmsg)
                 freelist.append(c)
 
             num_processed += len(ok_list) + len(err_list)
             if verbose:
-                print >>sys.stderr, str(num_processed) + '/' + str(num_urls) +  '\r'
+                print(str(num_processed) + '/' + str(num_urls) +  '\r', file=sys.stderr)
             if num_q == 0:
                 break
 
         m.select(select_timeout)
-    print
+    print()
 
     for c in m.handles:
         c.close()
@@ -149,10 +149,10 @@ def get(getspec, nconns=5, parser=json.loads, select_timeout=1.0, verbose=True):
 
     rv = parser_thread.finish()
     toc = time.time()
-    print """downloaded %ib from %i urls in %.03fs (%.03fMB/s download: %.03fs, parse: %03fs)""" % \
+    print("""downloaded %ib from %i urls in %.03fs (%.03fMB/s download: %.03fs, parse: %03fs)""" % \
         (parser_thread.rawlength, 
          
          len(rv), toc - tic, 
          float(parser_thread.rawlength) / ((dlend - tic) * 1e6),
-         dlend - tic, parser_thread.ptime)
+         dlend - tic, parser_thread.ptime))
     return rv

@@ -34,7 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 from twisted.internet import reactor
 
 # use this to get a smap source in one line
-import loader
+from . import loader
 
 # autoflush means that we don't call flush on a timer
 s = loader.load('default.ini', autoflush=None)
@@ -43,7 +43,7 @@ s = loader.load('default.ini', autoflush=None)
 CHUNKSIZE=1000
 i = 0
 def fail(err):
-    print "Received error while delivering reports"
+    print("Received error while delivering reports")
     reactor.stop()
     
 def do_add(*args):
@@ -53,10 +53,10 @@ def do_add(*args):
         reactor.stop()
     else:
         # publish a bunch of data
-        for v in xrange(i*CHUNKSIZE, i*CHUNKSIZE+CHUNKSIZE):
+        for v in range(i*CHUNKSIZE, i*CHUNKSIZE+CHUNKSIZE):
             s.get_timeseries('/sensor0')._add(0, v)
         i += 1
-        print "flush", CHUNKSIZE
+        print("flush", CHUNKSIZE)
         
         # then flush. we'll get a callback once we've sent it to all
         # of the destinations

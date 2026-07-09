@@ -34,11 +34,12 @@ import traceback
 import time
 import json
 import operator
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import csv
 import datetime
 import logging
 
+from smap import compat
 from twisted.internet import reactor, threads, defer
 from twisted.web import resource, server
 from twisted.web.resource import NoResource
@@ -49,12 +50,12 @@ import smap.sjson as json
 from smap.server import setResponseCode
 from smap.core import SmapException
 from smap.contrib import dtutil
-from data import escape_string, data_load_result, makeErrback
-import queryparse as qp
-from querygen import build_authcheck
-import settings
-import stream
-from consumers import make_time_formatter
+from .data import escape_string, data_load_result, makeErrback
+from . import queryparse as qp
+from .querygen import build_authcheck
+from . import settings
+from . import stream
+from .consumers import make_time_formatter
 
 class ApiResource(resource.Resource):
     def __init__(self, db):
@@ -87,7 +88,7 @@ class SubscriptionResource(ApiResource):
 
     def render_GET(self, request):
         if len(request.prepath) == 2 or \
-                (len(request.prepath) == 3 and request.prepath[-1] == ''):
+                (len(request.prepath) == 3 and compat.to_str(request.prepath[-1]) == ''):
             d = self.db.runQuery("""
 SELECT id, url, resource
 FROM subscription sub WHERE """ + build_authcheck(request, action='select'))
@@ -104,7 +105,7 @@ WHERE """ + build_authcheck(request) + """ AND
     m.stream_id = s.id AND
     s.subscription_id = sub.id AND
     sub.id = %s 
-""", (int(request.prepath[-1]), ))
+""", (int(compat.to_str(request.prepath[-1])), ))
             d.addCallback(lambda x: self._done_streams(request, x))
             d.addErrback(makeErrback(request))
         return server.NOT_DONE_YET
@@ -198,14 +199,13 @@ class Api(resource.Resource):
     def generic_extract_result(self, request, result):
         """Extract postgres results which are just wrapped with an extra
         list"""
-        return request, map(operator.itemgetter(0), result)
+        return request, list(map(operator.itemgetter(0), result))
 
     def tag_extract_result(self, request, result):
         """For a tag query, we want to return a nested dict so we pipe the
         result through this filter instead.
         """
-        return request, map(lambda x: util.build_recursive(x[0], suppress=[]), 
-                            result)
+        return request, [util.build_recursive(x[0], suppress=[]) for x in result]
 
     def write_one_stream(self, request, stream, stags, mime_header=False):
         """For a CSV downlod, add some hweaders and write the data to the stream
@@ -215,16 +215,16 @@ class Api(resource.Resource):
             request.write("# uuid: %s\n" % stream['uuid'])
             request.write("# DownloadTime: " + time.ctime() + "\n")
             request.write("# ")
-            request.write('\n# '.join((': '.join(x) for x in sorted(stags.iteritems()))))
+            request.write('\n# '.join((': '.join(x) for x in sorted(stags.items()))))
             request.write('\n')
 
             time_formatter = make_time_formatter(request, stags)
             def row_action(row):
                 row[0] = time_formatter(row[0])
                 writer.writerow(row)
-            map(row_action, stream['Readings'])
+            list(map(row_action, stream['Readings']))
         else:
-            map(writer.writerow, stream['Readings'])
+            list(map(writer.writerow, stream['Readings']))
 
     def send_csv_reply(self, request, result, tags):
         """CSV replies are easy"""
@@ -239,9 +239,10 @@ class Api(resource.Resource):
                               tags)        
         request.finish()
 
-    def send_data_reply(self, (request, result)):
+    def send_data_reply(self, xxx_todo_changeme):
         """After reading back some data, format it and send it to the client
         """
+        (request, result) = xxx_todo_changeme
         if not 'format' in request.args or 'json' in request.args['format']:
             return self.send_reply((request, result))
         elif 'format' in request.args and 'csv' in request.args['format']:
@@ -266,9 +267,10 @@ class Api(resource.Resource):
             request.setResponseCode(400)
             request.finish()
 
-    def send_reply(self, (request, result)):
+    def send_reply(self, xxx_todo_changeme1):
         """Send a generic json reply.
         """
+        (request, result) = xxx_todo_changeme1
         if not 'callback' in request.args:
             return self.send_json(request, result)
         else:
@@ -280,7 +282,7 @@ class Api(resource.Resource):
             request.write(json.dumps(result))
             request.finish()
             return server.NOT_DONE_YET
-        except Exception, e:
+        except Exception as e:
             log.err()
             raise
 
@@ -292,7 +294,7 @@ class Api(resource.Resource):
             request.write(');')
             request.finish()
             return server.NOT_DONE_YET
-        except Exception, e:
+        except Exception as e:
             log.err()
             raise
 
@@ -312,7 +314,7 @@ class Api(resource.Resource):
         # except for streams, all api resources specify a set of
         # streams using a query path.  therefore they all operate on
         # sets of streams.
-        if name == 'streams':
+        if compat.to_str(name) == 'streams':
             return SubscriptionResource(self.db)
         else:
             return self
@@ -326,11 +328,12 @@ class Api(resource.Resource):
         """
         # make a parser and parse the request
         parser = qp.QueryParser(request)
-        if not query: query = request.content.read() 
+        if not query: query = compat.to_str(request.content.read())
+        query = compat.to_str(query)
         try: 
             # run the query locally
             d = parser.runquery(self.db, query)
-        except Exception, e:
+        except Exception as e:
             log.err("Failing query: " + str(query))
             log.err()
             setResponseCode(request, e, 400)
@@ -357,9 +360,9 @@ class Api(resource.Resource):
                                                            'next', 'prev', 'tags',
                                                            'operators']}))
         # start by looking up the set of streams we are going to operate on
-        path = map(lambda x: x.replace('__', '/'), request.prepath[2:])
-        path = map(urllib.unquote, path)
-        method = request.prepath[1]
+        path = [compat.to_str(x).replace('__', '/') for x in request.prepath[2:]]
+        path = list(map(urllib.parse.unquote, path))
+        method = compat.to_str(request.prepath[1])
 
         # dispatch based on the method name
         if method != 'query':
@@ -376,8 +379,8 @@ class Api(resource.Resource):
                 # this allows a user to enumerate tags
                 d = build_query(self.db,
                                 request,
-                                zip(path[::2], 
-                                    path[1::2] + [None]))
+                                list(zip(path[::2], 
+                                    path[1::2] + [None])))
                 d.addCallback(lambda r: self.generic_extract_result(request, r))
                 d.addCallback(self.send_reply)
                 d.addErrback(lambda x: self.send_error(request, x))
@@ -386,8 +389,8 @@ class Api(resource.Resource):
             # retrieve tags
             d = build_tag_query(self.db,
                                 request, 
-                                zip(path[::2], 
-                                    path[1::2] + [None]))
+                                list(zip(path[::2], 
+                                    path[1::2] + [None])))
             d.addCallback(lambda r: self.tag_extract_result(request, r))
             d.addCallback(self.send_reply)
             d.addErrback(lambda x: self.send_error(request, x))
@@ -397,15 +400,15 @@ class Api(resource.Resource):
             # retrieve data
             d = self.db.runQuery("""SELECT uuid, id FROM stream WHERE
 id IN """ + build_inner_query(request,
-                              zip(path[::2], 
-                                  path[1::2] + [None]))[0])
+                              list(zip(path[::2], 
+                                  path[1::2] + [None])))[0])
             d.addCallback(log_time, time.time())
             d.addCallback(lambda r: data_load_result(request, method, r))
             d.addCallback(lambda d: (request, d))
             d.addCallback(self.send_data_reply)
             d.addErrback(lambda x: self.send_error(request, x))
         elif method == 'operators':
-            self.send_reply((request, stream.installed_ops.keys()))
+            self.send_reply((request, list(stream.installed_ops.keys())))
         else:
             settings.metrics.increment("rest_404_count")
             request.setResponseCode(404)

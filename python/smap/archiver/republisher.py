@@ -39,15 +39,14 @@ from twisted.python import log
 
 from autobahn.twisted.websocket import WebSocketServerFactory, \
     WebSocketServerProtocol
-from autobahn.twisted.resource import WebSocketResource, \
-    HTTPChannelHixie76Aware
+from autobahn.twisted.resource import WebSocketResource
 
 from smap.core import SmapException
 from smap.server import setResponseCode
 from smap.archiver import settings
 import smap.util as util
 import smap.sjson as json
-import queryparse as qp
+from . import queryparse as qp
 
     
 class RepublishEndpoint(object):
@@ -83,7 +82,7 @@ class RepublishEndpoint(object):
         query = "select distinct uuid where (%s)" % q
         try:
             d = parser.runquery(self.db, query)
-        except SmapException, e:
+        except SmapException as e:
             return defer.fail(e)
         else:
             d.addCallback(self.set_topics)
@@ -97,13 +96,13 @@ class RepublishEndpoint(object):
                 self.write(obj)
             else:
                 # only include topical data
-                custom = dict((k, obj[k]) for k in obj.iterkeys() \
+                custom = dict((k, obj[k]) for k in obj.keys() \
                                   if not 'uuid' in obj[k] or  \
                                   obj[k]['uuid'] in self.topics)
                 # don't bother filtering metadata at the moment
                 # since it's expensive to construct and mostly
                 # won't happen.
-                if sum((1 for v in custom.itervalues() if 'uuid' in v)):
+                if sum((1 for v in custom.values() if 'uuid' in v)):
                     self.write(custom)
 
     def notifyFinish(self):
@@ -149,7 +148,10 @@ class ReResource(resource.Resource):
     def render_POST(self, request):
         client = HttpRepublishEndpoint(self.db, request)
         # track finishes
-        d = client.update_topics(request.content.read())
+        body = request.content.read()
+        if isinstance(body, bytes):
+            body = body.decode('utf-8')
+        d = client.update_topics(body)
         d.addCallback(lambda _: self.add_client(client))
         d.addErrback(lambda reason: self._fail(request, reason))
         return server.NOT_DONE_YET
@@ -170,7 +172,13 @@ class RepublishServerProtocol(WebSocketServerProtocol):
         self.args = request.params
 
     def onMessage(self, payload, isBinary):
-        if self.client: 
+        if isBinary:
+            # topic updates must be text frames
+            self.sendClose()
+            return
+        if self.client:
+            if isinstance(payload, bytes):
+                payload = payload.decode('utf-8')
             d = self.client.update_topics(payload)
             # disconnect if there's an error running a query
             d.addErrback(lambda reason: self.sendClose())
@@ -209,7 +217,7 @@ class WebSocketRepublishEndpoint(RepublishEndpoint):
         self.finished = defer.Deferred()
 
     def write(self, obj):
-        self.request.sendMessage(json.dumps(obj), False)
+        self.request.sendMessage(json.dumps(obj).encode('utf-8'), False)
 
     def notifyFinish(self):
         return self.finished
@@ -224,7 +232,6 @@ class WebSocketRepublishResource(WebSocketResource):
         self.db = db
         self.clients = set([])
         factory = RepublishServerFactory("ws://example.com:8079/wsrepublish", 
-                                         debug=False,
                                          wsresource=self)
         WebSocketResource.__init__(self, factory)
 
@@ -250,7 +257,7 @@ class WebSocketRepublishResource(WebSocketResource):
 def _sanitize_keys(obj):
     # hilariously, the Mongo "database" doesn't support keys
     # starting with '$' or containing '.'
-    for k in obj.keys():
+    for k in list(obj.keys()):
         kprime = None
         if k[0] == "$" or k.find(".") != -1:
             kprime = k.replace(".", "_")
@@ -261,7 +268,7 @@ def _sanitize_keys(obj):
 
 def sterilize_object(obj):
     n = copy.deepcopy(obj)
-    for k in obj.iterkeys():
+    for k in obj.keys():
         kprime = k
         if kprime.startswith('$'):
             kprime = k[1:]

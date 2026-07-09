@@ -33,7 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 import os
 import sys
 
-from zope.interface import implements
+from zope.interface import implementer
 
 from twisted.python import usage
 from twisted.plugin import IPlugin
@@ -56,7 +56,7 @@ except ImportError:
 try:
     from smap.bonjour import broadcast
 except ImportError:
-    print >>sys.stderr, "sMAP: pybonjour not available"
+    print("sMAP: pybonjour not available", file=sys.stderr)
     def broadcast(*args):
         pass
 
@@ -80,7 +80,7 @@ class Options(usage.Options):
     def parseArgs(self, conf):
         self['conf'] = conf
         if not os.access(self['conf'], os.R_OK):
-            print >>sys.stderr, "ERROR: no such configuration file: " + self['conf']
+            print("ERROR: no such configuration file: " + self['conf'], file=sys.stderr)
             sys.exit(1)
 
 
@@ -100,7 +100,7 @@ def makeService(options):
     smapconf.start_logging()
     # override defaults with command-line args
     smapconf.SERVER.update(dict([(k.lower(), v) for (k, v) in
-                                 options.iteritems() if v != None]))
+                                 options.items() if v != None]))
 
     if 'SuggestThreadPool' in smapconf.SERVER:
         reactor.suggestThreadPoolSize(int(smapconf.SERVER['SuggestThreadPool']))

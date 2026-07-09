@@ -37,7 +37,7 @@ from smap.driver import SmapDriver
 from smap.util import periodicSequentialCall
 from smap.contrib import dtutil
 import dateutil.parser
-import urllib, urllib2
+import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
 import BeautifulSoup
 import json
 
@@ -83,7 +83,7 @@ class NOAAForecast(SmapDriver):
       args[e.code_name] = e.code_name
       self.add_timeseries('/' + name, e.units, data_type='double')
 
-    self.url = baseurl + '?' + urllib.urlencode(args)
+    self.url = baseurl + '?' + urllib.parse.urlencode(args)
 
   def start(self):
     periodicSequentialCall(self.read).start(60*60)
@@ -92,8 +92,8 @@ class NOAAForecast(SmapDriver):
     for retry_time in [0, 30, 5*60]:
       time.sleep(retry_time)
       try:
-        print "Reading"
-        data = urllib2.urlopen(self.url, timeout = 30).read()
+        print("Reading")
+        data = urllib.request.urlopen(self.url, timeout = 30).read()
         times = {}
 
         b = BeautifulSoup.BeautifulSoup(data)
@@ -113,7 +113,7 @@ class NOAAForecast(SmapDriver):
         for data_block in data.find('parameters').findAll(recursive=False):
           key = data_block['time-layout']
           # Find the element being returned
-          for (name, e) in self.element_map.items():
+          for (name, e) in list(self.element_map.items()):
             if e.tag_name == data_block.name and e.type_name == data_block['type']:
               # Element found
               value = []
@@ -124,6 +124,6 @@ class NOAAForecast(SmapDriver):
                 self.add('/'+name, int(t), v)
               break
         return
-      except Exception, e:
-        print e
+      except Exception as e:
+        print(e)
       # Error occured retry

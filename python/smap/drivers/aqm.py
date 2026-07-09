@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 @author Andrew Fang <andrewbfang@berkeley.edu>
 """
                                                                                 
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 from BeautifulSoup import BeautifulSoup
 
@@ -65,7 +65,7 @@ class AQMDriver(SmapDriver):
         self.tz = opts.get('Timezone', 'America/Los_Angeles')
         self.rate = float(opts.get('Rate', 1))  # seconds between update
 
-        for sensor in self.SENSORS.keys():
+        for sensor in list(self.SENSORS.keys()):
             temp = self.add_timeseries(
                 '/' + sensor,  # path
                 self.SENSORS[sensor]['unit'],  # unit for reading
@@ -82,17 +82,17 @@ class AQMDriver(SmapDriver):
 
         if readings:
             # add to time series
-            for sensor in self.SENSORS.keys():
+            for sensor in list(self.SENSORS.keys()):
                 self.add('/' + sensor, readings[sensor])
 
     def fetch_sensor_readings(self):
         try:
             url = 'http://' + self.ip + '/status.xml'
-            u = urllib2.urlopen(url)
-        except urllib2.URLError:
+            u = urllib.request.urlopen(url)
+        except urllib.error.URLError:
             log.err()
             pass
-        except urllib2.HTTPError:
+        except urllib.error.HTTPError:
             log.err()
             pass
         else:

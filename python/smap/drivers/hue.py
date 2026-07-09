@@ -29,7 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 @author Jonathan Fuerst <jonf@itu.dk>
 """
-import os, requests, __builtin__
+import os, requests, builtins
 from smap import actuate, driver
 from smap.util import periodicSequentialCall
 from smap.contrib import dtutil
@@ -52,12 +52,12 @@ class HUE(driver.SmapDriver):
     ]
   def searchNewLights(self, ip, user):
     r = requests.post("http://" + ip + "/api/" + user + "/lights")
-    print r.text
+    print(r.text)
 
   def getLights(self, ip, user):
     r = requests.get("http://" + ip + "/api/"+user+"/lights")
     val = json.loads(r.text)
-    print "lights available"
+    print("lights available")
     return val
 
   def setup(self, opts):

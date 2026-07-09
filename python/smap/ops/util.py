@@ -67,7 +67,7 @@ class StandardizeUnitsOperator(Operator):
         unit = stream['Properties/UnitofMeasure']
         if self.oldname == unit:
             return (self.newname, self.extra_op)
-        for pat, converter in StandardizeUnitsOperator.units.iteritems():
+        for pat, converter in StandardizeUnitsOperator.units.items():
             if util.is_string(pat):
                 if unit == pat: return converter
             elif pat.match(unit):
@@ -84,7 +84,7 @@ class StandardizeUnitsOperator(Operator):
 
         self.converters = [lambda x: x] * len(inputs)
         outputs = copy.deepcopy(inputs)
-        for i in xrange(0, len(inputs)):
+        for i in range(0, len(inputs)):
             if 'Properties/UnitofMeasure' in inputs[i]:
                 unit, converter = self.find_conversion(inputs[i])
 
@@ -101,7 +101,7 @@ class StandardizeUnitsOperator(Operator):
         Operator.__init__(self, inputs, outputs)
 
     def process(self, data):
-        return util.flatten(map(lambda (c, d): c([d]), zip(self.converters, data)))
+        return util.flatten([c_d[0]([c_d[1]]) for c_d in zip(self.converters, data)])
 
 
 class NullOperator(Operator):
@@ -125,7 +125,7 @@ class PrintOperator(NullOperator):
     operator_name = 'print'
     operator_constructors = [()]
     def process(self, inputs):
-        print inputs
+        print(inputs)
         return inputs
 
 class SnapOperator(ParallelSimpleOperator):
@@ -168,9 +168,9 @@ class StripMetadata(Operator):
     operator_constructors = [()]
 
     def __init__(self, inputs):
-        outputs = [{} for x in xrange(0, len(inputs))]
+        outputs = [{} for x in range(0, len(inputs))]
         for i, stream in enumerate(inputs):
-            for k, v in stream.iteritems():
+            for k, v in stream.items():
                 if not k.startswith('Metadata/'):
                     outputs[i][k] = v
         Operator.__init__(self, inputs, outputs)
@@ -202,7 +202,7 @@ class MissingDataOperator(ParallelSimpleOperator):
         length, width = data.shape
         width -= 1
         nancnt = np.sum(np.isnan(data[:, 1:]), axis=1)
-        print "invert?", invert
+        print("invert?", invert)
         if not invert:
             takerows = np.where(width - nancnt >= width * ndatathresh)
         else:
@@ -214,7 +214,7 @@ class MissingDataOperator(ParallelSimpleOperator):
             return mknull(width)
 
 def make_colspec(cols):
-    return map(int, cols.split(','))
+    return list(map(int, cols.split(',')))
 
 
 class CopyOperator(ParallelSimpleOperator):
@@ -228,7 +228,7 @@ class CopyOperator(ParallelSimpleOperator):
 
     @staticmethod
     def base_operator(data, cols=""):
-        return np.column_stack([data] + map(lambda i: data[:, i], cols))
+        return np.column_stack([data] + [data[:, i] for i in cols])
 
 class IndexOperator(ParallelSimpleOperator):
     name = "index"
@@ -241,7 +241,7 @@ class IndexOperator(ParallelSimpleOperator):
 
     @staticmethod
     def base_operator(data, cols=""):        
-        return np.column_stack([data[:, 0]] + map(lambda i: data[:, i], cols))
+        return np.column_stack([data[:, 0]] + [data[:, i] for i in cols])
 
 class AddColumnOperator(Operator):
     name = 'addcol'
@@ -250,7 +250,7 @@ class AddColumnOperator(Operator):
     def __init__(self, inputs, cols="1", operator=None):
 
         self.cols = make_colspec(cols)
-        self.ops = map(lambda x: operator([x]), inputs)
+        self.ops = [operator([x]) for x in inputs]
         self.name = 'catcol(%s, %s)' % (','.join(map(str, self.cols)), 
                                         str(self.ops[0]))
         # print self.cols, self.ops
@@ -298,6 +298,6 @@ class MaskedDTList:
         self.dts = self.dts[i:]
 
     def __iter__(self):
-        for i in xrange(0, len(self)):
+        for i in range(0, len(self)):
             yield self.__getitem__(i)
 

@@ -38,13 +38,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 # LocationName = cory
 
 import time
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import re
 
 from smap.driver import SmapDriver
 from smap.util import periodicCallInThread
 
-urllib2.install_opener(urllib2.build_opener())
+urllib.request.install_opener(urllib.request.build_opener())
 
 class ForecastTempDriver(SmapDriver):
     """Periodically scrape the weather forecast from the NWS site and republish
@@ -59,10 +59,10 @@ class ForecastTempDriver(SmapDriver):
             site += str(self.longitude)
             site += "&product=time-series&temp=temp&Submit=Submit"
 
-            xmlData = urllib2.urlopen(site)
-        except urllib2.URLError:
+            xmlData = urllib.request.urlopen(site)
+        except urllib.error.URLError:
             pass
-        except urllib2.HTTPError:
+        except urllib.error.HTTPError:
             pass
         except IOError:
             pass
@@ -82,7 +82,7 @@ class ForecastTempDriver(SmapDriver):
             thisTime=time.mktime(time.strptime(readTime,'%Y-%m-%dT%H:%M:%S'))+(int(tzhour.group(1)) * 60 * 60)
 
             if self.lastProduced == None or self.lastProduced != thisTime:
-                print "Updated reading"
+                print("Updated reading")
                 self.lastProduced = thisTime
                 tempsPat=re.compile('<value>(.*)</value>')
                 temps=tempsPat.finditer(xmlStr)
@@ -115,12 +115,12 @@ class ForecastTempDriver(SmapDriver):
             site += str(self.longitude)
             site += "&product=time-series&temp=temp&Submit=Submit"
            
-            xmlData = urllib2.urlopen(site)
-        except urllib2.URLError:
-            print "urle"
+            xmlData = urllib.request.urlopen(site)
+        except urllib.error.URLError:
+            print("urle")
             pass
         except IOError:
-            print "ioe"
+            print("ioe")
             pass        
         
         xmlStr=str(xmlData.read())

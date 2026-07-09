@@ -1,0 +1,26 @@
+# sMAP Archiver
+
+## Overview
+The sMAP (Simple Measurement and Actuation Profile) archiver — a legacy Python 2 / Twisted time-series data platform from UC Berkeley — ported to Python 3.12 and running in Replit. It ingests sensor time-series data over HTTP and serves queries through the sMAP query language.
+
+## Current State
+- Codebase (under `python/`) converted from Python 2 to Python 3 (lib2to3 plus manual fixes for `zope.interface.implements`, str/bytes handling in the Twisted web layer, and SQL escaping).
+- Storage uses Replit PostgreSQL via a SQL shim (`python/readingdb.py`) instead of the legacy readingdb time-series database.
+- Schema loaded from `docker/postgres-init.sql` (tables: subscription, stream, permission, republish, data). API key `mykey` is seeded.
+- Archiver runs via the `sMAP Archiver` workflow (`./start-archiver.sh`) on port 5000.
+
+## How It Works
+- `start-archiver.sh` generates `/tmp/archiver.ini` from the `PG*` environment variables and launches `twistd -n smap-archiver`.
+- `python/smap/compat.py` monkeypatches Twisted `Request.write`/`Request.process` for str/bytes compatibility.
+- Data ingestion: `POST /add/mykey` with sMAP JSON report objects.
+- Queries: `POST /api/query` with sMAP query language (e.g. `select *`, `select data in (t1, t2) where uuid = '...'`).
+
+## Key Files
+- `start-archiver.sh` — startup script
+- `python/smap/archiver/` — archiver server, API, query parser
+- `python/readingdb.py` — Postgres-backed readingdb shim
+- `python/twisted/plugins/smap_archiver_plugin.py` — twistd plugin
+- `docker/postgres-init.sql` — database schema
+
+## User Preferences
+(none recorded yet)

@@ -118,7 +118,7 @@ def olson(cname, offset):
     timezone = pytz.timezone(name)
     if not hasattr(timezone, '_tzinfos'):
       continue
-    for (utcoffset, daylight, tzname), _ in timezone._tzinfos.iteritems():
+    for (utcoffset, daylight, tzname), _ in timezone._tzinfos.items():
       if tzname == cname and utcoffset == offset:
         zones.append(name)
   return zones

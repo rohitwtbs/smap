@@ -69,7 +69,7 @@ def start_logging():
     observer = log.PythonLoggingObserver()
     observer.start()
 
-    for logtype, config in LOGGING.iteritems():
+    for logtype, config in LOGGING.items():
         if logtype == "raven":
             from raven.handlers.logging import SentryHandler
             lvl = getattr(logging, config.get('level', 'info').upper())
@@ -78,8 +78,8 @@ def start_logging():
             # don't try to log sentry errors with sentry
             handler.addFilter(InverseFilter('sentry'))
             logging.getLogger().addHandler(handler)
-            print "Starting sentry logging [%s] with destination %s"% (
-                config.get('level', 'info').upper(), config["dsn"])
+            print("Starting sentry logging [%s] with destination %s"% (
+                config.get('level', 'info').upper(), config["dsn"]))
         elif logtype == 'console':
             console = logging.StreamHandler()
             lvl = getattr(logging, config.get('level', 'info').upper())
@@ -87,4 +87,4 @@ def start_logging():
             formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
             console.setFormatter(formatter)
             logging.getLogger().addHandler(console)
-            print "Starting console logging [%s]" % config.get('level', 'info').upper()
+            print("Starting console logging [%s]" % config.get('level', 'info').upper())

@@ -62,7 +62,7 @@ Configuration options:
 
         # specialize the input operators
         self.ops = []
-        for k, v in opts.iteritems():
+        for k, v in opts.items():
             if not k.startswith('Expression'): continue
             self.ops.append(parse_opex(v))
 
@@ -96,14 +96,14 @@ Configuration options:
             groups[key].append(s)
 
         self.loading = True
-        for g, inputs in groups.iteritems():
-            print "adding group", g, "(%i/%i)" % (i, len(groups))
+        for g, inputs in groups.items():
+            print("adding group", g, "(%i/%i)" % (i, len(groups)))
             i += 1
             for op in self.ops:
                 op_instance = op.ast(inputs)
                 assert len(op_instance.outputs) == 1
                 try:
-                    inp = map(operator.itemgetter('uuid'), op_instance.inputs)
+                    inp = list(map(operator.itemgetter('uuid'), op_instance.inputs))
                     out = op_instance.outputs[0]
                     path = '/' + '.'.join(map(str, sorted(inp))) + '/' + str(out['uuid'])
                     self.add_operator(path, op_instance)

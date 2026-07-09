@@ -63,7 +63,7 @@ class Driver(SmapDriver):
         restrict = "Path='" + "' or Path='".join(self.paths) + "'"
         query = "apply %s to data in (now -15m, now) where (%s)" % (self.expr, restrict)
         r = requests.post(self.url, data=query, params=self.params)
-        self._value = zip(self.paths, json.loads(r.text))
+        self._value = list(zip(self.paths, json.loads(r.text)))
         self.writeDROMScsv(self._value)
         self.writeDROMSzip()
         self.postDROMSzip()
@@ -96,6 +96,6 @@ class Driver(SmapDriver):
         api_path = "api/v1/meters"
         files = {'file': ('meterdata.zip', open('meterdata.zip', 'rb'))}
         url = tenant_url + api_path
-        print url
+        print(url)
         r = requests.post(url, auth=self.auth, files=files)
-        print r.text
+        print(r.text)

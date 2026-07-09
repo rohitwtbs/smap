@@ -58,6 +58,6 @@ and adds them as as a sMAP data source.
 
     def datagramReceived(self, data, addr):
         data = json.loads(data)
-        for stat, v in data.iteritems():
+        for stat, v in data.items():
             if not stat in self.stats: continue
             self._add('/' + stat, data['timestamp'], v)

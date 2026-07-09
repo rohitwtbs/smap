@@ -34,15 +34,15 @@ import sys
 
 import re
 import csv
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import datetime, time
 import traceback
-import urlparse
+import urllib.parse
 import base64
-import StringIO
+import io
 
-import sensordb
-import obvius
+from . import sensordb
+from . import obvius
 
 from twisted.internet import reactor, threads, task
 from twisted.internet.defer import DeferredSemaphore, Deferred
@@ -80,12 +80,12 @@ def make_field_idxs(type, header, location=None):
             name = '-'.join(elt)
             ddups[name] = ddups.get(name, 0) + 1
 
-    for k, v in ddups.iteritems():
+    for k, v in ddups.items():
         if v > 1:
-            print "WARNING:", v, "matching channels for", k
-            print header
-            print paths
-            print ddups
+            print("WARNING:", v, "matching channels for", k)
+            print(header)
+            print(paths)
+            print(ddups)
     return paths, map_
 
 class BMOLoader(smap.driver.SmapDriver):
@@ -143,8 +143,8 @@ class BMOLoader(smap.driver.SmapDriver):
         if not self.enddt:
             self.enddt = dtutil.now()
 
-        start, end = urllib.quote(dtutil.strftime_tz(self.startdt, TIMEFMT)), \
-            urllib.quote(dtutil.strftime_tz(self.enddt, TIMEFMT))
+        start, end = urllib.parse.quote(dtutil.strftime_tz(self.startdt, TIMEFMT)), \
+            urllib.parse.quote(dtutil.strftime_tz(self.enddt, TIMEFMT))
 
         url = self.url % (start, end)
         url += "&mnuStartMonth=%i&mnuStartDay=%i&mnuStartYear=%i" % \
@@ -175,10 +175,10 @@ class BMOLoader(smap.driver.SmapDriver):
         return done
 
     def process(self, body):
-        reader = csv.reader(StringIO.StringIO(body), dialect='excel-tab')
-        header = reader.next()
+        reader = csv.reader(io.StringIO(body), dialect='excel-tab')
+        header = next(reader)
         if len(header) == 0:
-            print "Warning: no data from", self.url
+            print("Warning: no data from", self.url)
             raise core.SmapException("no data!")
         try:
             self.field_map, self.map = make_field_idxs(self.meter_type, header, 

@@ -33,13 +33,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 import logging
 import time
 import calendar
-import urlparse
+import urllib.parse
 import re
 
 import smap.driver
 from smap.util import periodicSequentialCall
 
-import sensordb
+from . import sensordb
 
 def to_pathname(s):
     s = re.sub('[\W/]+', '_', s)
@@ -62,9 +62,9 @@ class Driver(smap.driver.FetchDriver):
                 'Extra/Phase' : phase })
 
         # create the url with auth included
-        url_p = urlparse.urlparse(opts['Url'])
+        url_p = urllib.parse.urlparse(opts['Url'])
         netloc = '%s:%s@%s' % (opts['Username'], opts['Password'], url_p.netloc)
-        url = urlparse.urlunparse((url_p.scheme, netloc, url_p.path, 
+        url = urllib.parse.urlunparse((url_p.scheme, netloc, url_p.path, 
                                    url_p.params, url_p.query, url_p.fragment))
 
         smap.driver.FetchDriver.setup(self, {

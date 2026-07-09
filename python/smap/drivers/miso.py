@@ -31,11 +31,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 import time
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 from smap.drivers.scraper import ScraperDriver
 
-urllib2.install_opener(urllib2.build_opener())
+urllib.request.install_opener(urllib.request.build_opener())
 
 class MIsoDriver(ScraperDriver):
     """Periodically scrape data from MISO and publish it as sMAP feeds
@@ -60,7 +60,7 @@ class MIsoDriver(ScraperDriver):
                  }
     
     def scrape(self):
-        miso1 = urllib2.urlopen('https://www.midwestiso.'
+        miso1 = urllib.request.urlopen('https://www.midwestiso.'
                                 'org/ria/ptpTotalLoad.aspx?format=csv')
         lines = miso1.readlines()
         miso1.close()
@@ -109,7 +109,7 @@ class MIsoDriver(ScraperDriver):
         miso_output["Load"]["Total Area"]["Actual"] = timeseries
         #done actual load
         #start wind generation
-        miso2 = urllib2.urlopen('https://www.midwestiso.org/ria/'
+        miso2 = urllib.request.urlopen('https://www.midwestiso.org/ria/'
                                             'windgenResponse.aspx?format=csv')
         lines = miso2.readlines()
         miso2.close()
@@ -121,7 +121,7 @@ class MIsoDriver(ScraperDriver):
         miso_output["Generation"] = {"Total Area": {"Wind": timeseries}}
         #done wind generation
         #start ACE
-        miso3 = urllib2.urlopen('https://www.midwestiso.org/ria/aceResponse.'
+        miso3 = urllib.request.urlopen('https://www.midwestiso.org/ria/aceResponse.'
                                                             'aspx?format=csv')
         lines = miso3.readlines()
         miso3.close()
@@ -156,9 +156,9 @@ class MIsoDriver(ScraperDriver):
         self.update_frequency = 300
         scraped = self.scrape()
         
-        for data_type in scraped.keys():
-            for location in scraped[data_type].keys():
-                for valtype in scraped[data_type][location].keys():
+        for data_type in list(scraped.keys()):
+            for location in list(scraped[data_type].keys()):
+                for valtype in list(scraped[data_type][location].keys()):
                     path = "/" + data_type + "/" + location + "/" + valtype
                     temp = self.add_timeseries(path, "MISO" + data_type + 
                                 location + valtype,

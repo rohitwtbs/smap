@@ -146,4 +146,4 @@ if __name__ == '__main__':
     reg = int(sys.argv[1])
     m = ModbusRTU('192.168.1.12', slaveaddr=7)
     x = m.read(reg, 2, func=FUNC_READ_INPUT)
-    print [ord(c) for c in x]
+    print([ord(c) for c in x])

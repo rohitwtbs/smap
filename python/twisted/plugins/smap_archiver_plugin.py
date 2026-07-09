@@ -34,7 +34,7 @@ import os
 import sys
 
 import psycopg2.extras
-from zope.interface import implements
+from zope.interface import implementer
 
 from twisted.python import usage
 from twisted.plugin import IPlugin
@@ -52,8 +52,8 @@ class Options(usage.Options):
     def parseArgs(self, conf):
         self['conf'] = conf
 
+@implementer(IServiceMaker, IPlugin)
 class ArchiverServiceMaker(object):
-    implements(IServiceMaker, IPlugin)
     tapname = "smap-archiver"
     description = "A sMAP archiver"
     options = Options
@@ -71,9 +71,9 @@ class ArchiverServiceMaker(object):
             import objgraph
             import gc
             def stats():
-                print gc.collect()
-                print
-                print '\n'.join(map(str, objgraph.most_common_types(limit=10)))
+                print((gc.collect()))
+                print()
+                print(('\n'.join(map(str, objgraph.most_common_types(limit=10)))))
             task.LoopingCall(stats).start(2)
 
 
@@ -105,7 +105,7 @@ class ArchiverServiceMaker(object):
             mongo_repub = None
 
         if settings.conf['database']['republish']:
-            print "enabling pg republishing"
+            print("enabling pg republishing")
             pg_repub = republisher.PostgresEndpoint(cp)
         else:
             pg_repub = None

@@ -58,8 +58,8 @@ class BACnetDriver(SmapDriver):
         with open(opts.get('db'), 'r') as fp:
             self.db = json.load(fp)
         self.rate = int(opts.get('rate', 60))
-        self.devices = map(re.compile, opts.get('devices', ['.*']))
-        self.points = map(re.compile, opts.get('points', ['.*']))
+        self.devices = list(map(re.compile, opts.get('devices', ['.*'])))
+        self.points = list(map(re.compile, opts.get('points', ['.*'])))
         self.ffilter = _get_class(opts.get('filter')) if opts.get('filter') else None
         self.pathnamer = _get_class(opts.get('pathnamer')) if opts.get('pathnamer') else None
         for (dev, obj, path) in self._iter_points():
@@ -70,7 +70,7 @@ class BACnetDriver(SmapDriver):
 
     @staticmethod
     def _matches(s, pats):
-        return len(filter(None, map(lambda p: p.match(s), pats))) > 0
+        return len([_f for _f in [p.match(s) for p in pats] if _f]) > 0
 
     def get_path(self, dev, obj):
         if self.pathnamer:

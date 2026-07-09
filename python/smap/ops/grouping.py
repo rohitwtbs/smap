@@ -45,6 +45,7 @@ from smap import util, core
 from smap.operators import *
 from smap.ops.util import PrintOperator, MaskedDTList
 from smap.contrib import dtutil
+from functools import reduce
 
 DT_FIELDS = ['year', 'month', 'day', 'hour', 'minute', 'second']
 
@@ -107,10 +108,8 @@ class GroupByTimeOperator(Operator):
         self.pending = extend(self.pending, input)
 
         # apply the grouping operator to each window
-        startts = min(map(lambda x: np.min(x[:, 0]) if len(x) else np.inf,
-                          self.pending))
-        endts = max(map(lambda x: np.max(x[:, 0]) if len(x) else 0, 
-                        self.pending))
+        startts = min([np.min(x[:, 0]) if len(x) else np.inf for x in self.pending])
+        endts = max([np.max(x[:, 0]) if len(x) else 0 for x in self.pending])
         rv = [null] * len(self.outputs)
 
         if startts == np.inf or endts == 0:
@@ -121,13 +120,12 @@ class GroupByTimeOperator(Operator):
  
         # iterate over the groups
 
-        for time in xrange(startts, endts, self.chunk_length):
+        for time in range(startts, endts, self.chunk_length):
             # print "group starting", time
 
-            data = map(lambda x: x[np.where((x[:,0] >= time) & 
+            data = [x[np.where((x[:,0] >= time) & 
                                             (x[:,0] < time + self.chunk_length))]
-                       if len(x) else [],
-                       self.pending)
+                       if len(x) else [] for x in self.pending]
 
             # skip window if there's no data in it
             if self.skip_empty and sum(map(len, data)) == 0: continue
@@ -135,7 +133,7 @@ class GroupByTimeOperator(Operator):
 
             # apply
             opresult = self.bucket_op(data)
-            if max(map(len, opresult)) > 1:
+            if max(list(map(len, opresult))) > 1:
                 raise core.SmapException("Error! Grouping operators can not produce "
                                          "more than one result per group!")
             if self.snap_times:
@@ -144,14 +142,13 @@ class GroupByTimeOperator(Operator):
             rv = extend(rv, opresult)
 
         # filter out the data we operated on
-        self.pending = map(lambda x: x[np.nonzero(x[:, 0] >= endts)]
-                           if len(x) else null, 
-                           self.pending)
+        self.pending = [x[np.nonzero(x[:, 0] >= endts)]
+                           if len(x) else null for x in self.pending]
 
         return rv
 
 def P(x):
-    return map(lambda i: [x] * i, xrange(0, 5))
+    return [[x] * i for i in range(0, 5)]
 
 class GroupByDatetimeField(Operator):
     """Grouping operator which works using datetime objects
@@ -200,8 +197,8 @@ class GroupByDatetimeField(Operator):
         if self.inclusive[0] == False:
             raise core.SmapException("Open intervals at the start are not supported")
 
-        self.tzs = map(lambda x: dtutil.gettz(x['Properties/Timezone']), inputs)
-        self.ops = map(lambda x: group_operator([x]), inputs)
+        self.tzs = [dtutil.gettz(x['Properties/Timezone']) for x in inputs]
+        self.ops = [group_operator([x]) for x in inputs]
         # self.ops = [[op([x]) for op in ops] for x in inputs]
         self.comparator = self.make_bin_comparator(field, width)
         self.snapper = make_bin_snapper(field, slide)
@@ -212,8 +209,8 @@ class GroupByDatetimeField(Operator):
         self.name = "window(%s, field=%s, width=%i, inclusive=%s, snap_times=%s)" % ( \
             str(self.ops[0]), field, width, str(inclusive), str(snap_times))
         Operator.__init__(self, inputs, 
-                          util.flatten(map(operator.attrgetter('outputs'), 
-                                           self.ops)))
+                          util.flatten(list(map(operator.attrgetter('outputs'), 
+                                           self.ops))))
         self.reset()
 
     def reset(self):
@@ -308,7 +305,7 @@ class GroupByDatetimeField(Operator):
             # what ya want.
             if self.snap_times:
                 t = dtutil.dt2ts(bin_start)
-                for j in xrange(0, len(opdata)):
+                for j in range(0, len(opdata)):
                     opdata[j][:, 0] = t * 1000
             output = extend(output, opdata)
 
@@ -330,7 +327,7 @@ class GroupByDatetimeField(Operator):
 
     def process(self, data):
         rv = [null] * len(self.inputs)
-        for i in xrange(0, len(self.inputs)):
+        for i in range(0, len(self.inputs)):
             self.state[i]['first'] = data.first
             self.state[i]['last'] = data.last
             self.state[i]['region'] = data.region
@@ -385,7 +382,7 @@ class InterpolateOperator(Operator):
             raise core.SmapException("max_time_delta must be greater than the width.")
 
         self.snapper = make_bin_snapper(self.field, self.width)
-        self.tzs = map(lambda x: dtutil.gettz(x['Properties/Timezone']), inputs)
+        self.tzs = [dtutil.gettz(x['Properties/Timezone']) for x in inputs]
         Operator.__init__(self, inputs, outputs=OP_N_TO_N)
         self.reset()
         # debug 
@@ -449,7 +446,7 @@ class InterpolateOperator(Operator):
     def process(self, data):
         N = len(self.inputs)
         rv = [null] * N
-        for i in xrange(N):
+        for i in range(N):
             if data[i] is None: continue
             if (len(data[i][:,0]) == 0 or len(data[i][:,1]) == 0): continue
             rv[i], self.state[i] = self.process_one(data[i], self.tzs[i], 
@@ -495,19 +492,19 @@ class GroupByTagOperator(Operator):
                           for x in group_inputs]
 
         for o in self.operators:
-            for i in xrange(0, len(o.outputs)):
+            for i in range(0, len(o.outputs)):
                 o.outputs[i]['Metadata/Extra/Operator'] = 'tgroup(%s, %s)' % (group_tag,
                                                                               str(o))
                                                                        
         self.block_streaming = reduce(operator.__or__,
-                                      map(operator.attrgetter('block_streaming'), 
-                                          self.operators))
+                                      list(map(operator.attrgetter('block_streaming'), 
+                                          self.operators)))
         Operator.__init__(self, inputs, 
-                          outputs=util.flatten(map(operator.attrgetter('outputs'), 
-                                                   self.operators)))
+                          outputs=util.flatten(list(map(operator.attrgetter('outputs'), 
+                                                   self.operators))))
 
     def process(self, data):
-        rv = [[] for x in xrange(0, len(self.operators))]
+        rv = [[] for x in range(0, len(self.operators))]
         for i, op in enumerate(self.operators):
             input_data = [data[j] for j in self.group_idx[i]]
             rv[i] = self.operators[i](input_data)
@@ -517,9 +514,9 @@ class _OrderedOperator(Operator):
     def __init__(self, inputs, sort=None, reverse=False, label=None):
         # set default sort differently for the different methods
         if sort:
-            keys = zip(map(lambda x: x.get(sort, ''), inputs), range(0, len(inputs)))
+            keys = list(zip([x.get(sort, '') for x in inputs], list(range(0, len(inputs)))))
             keys.sort(key=lambda x: x[0], reverse=reverse)
-            self.order = map(operator.itemgetter(1), keys)
+            self.order = list(map(operator.itemgetter(1), keys))
         else:
             self.order = None
         self.name = '%s(sort=%s, reverse=%s)' % (self.operator_name, 
@@ -529,14 +526,13 @@ class _OrderedOperator(Operator):
         if sort and sort != 'uuid':
             self.outputs[0][sort] = ','.join(map(operator.itemgetter(0), keys))
         if label and label != 'uuid':
-            self.outputs[0][label] = ','.join(map(lambda x: x.get(label, ''), inputs))
+            self.outputs[0][label] = ','.join([x.get(label, '') for x in inputs])
 
     def process(self, data):
         if not self.order:
             return self._process(data)
         else:
-            return self._process(map(lambda i: data[i], 
-                                     self.order))
+            return self._process([data[i] for i in self.order])
 
 
 
@@ -587,7 +583,7 @@ class HstackOperator(_OrderedOperator):
         lengths = set((x.shape[0] for x in data))
         if len(lengths) != 1:
             raise core.SmapException("paste: hstack: wrong sized inputs")
-        return [np.hstack([data[0]] + map(lambda x: x[:, 1:], data[1:]))]
+        return [np.hstack([data[0]] + [x[:, 1:] for x in data[1:]])]
 
 
 class ReshapeOperator(ParallelSimpleOperator):
@@ -636,15 +632,15 @@ class VectorizeOperator(Operator):
         self.block_streaming = reduce(operator.__or__, 
                                       (op.block_streaming for op in self.ops), 
                                       False)
-        print "blocking", self.block_streaming
+        print("blocking", self.block_streaming)
         Operator.__init__(self, inputs, 
-                          util.flatten(map(operator.attrgetter('outputs'), 
-                                           self.ops)))
+                          util.flatten(list(map(operator.attrgetter('outputs'), 
+                                           self.ops))))
 
     def process(self, data):
         return util.flatten(op(data) for op in self.ops)
 
-for n in xrange(0, 10):
+for n in range(0, 10):
     VectorizeOperator.operator_constructors.append(tuple([lambda _: _] * n))
 
 class HistOperator(ParallelSimpleOperator):

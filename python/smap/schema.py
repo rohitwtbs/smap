@@ -34,10 +34,10 @@ import os
 import sys
 import json
 import uuid
-from cStringIO import StringIO
+from io import StringIO
 from avro import schema, io
 
-import util
+from . import util
 import pkgutil
 
 NAMESPACE = "edu.berkeley.cs.local"
@@ -106,7 +106,7 @@ def convert_readings(obj):
 
 def remove_none(obj):
     dellist = []
-    for k, v in obj.iteritems():
+    for k, v in obj.items():
         if v == None: dellist.append(k)
         elif isinstance(v, dict):
             remove_none(v)
@@ -150,15 +150,15 @@ def filter_fields(schema, obj):
 def dump_report(datum):
     # have to diddle with some of the values so avro doesn't choke
 
-    uuids = map(convert_uuids, datum.itervalues())
-    map(convert_readings, datum.itervalues())
+    uuids = list(map(convert_uuids, iter(datum.values())))
+    list(map(convert_readings, iter(datum.values())))
 
     # then just dump it to a string
     out = StringIO()
     dwriter = io.DatumWriter(writers_schema=REPORT_SCHEMA)
     dwriter.write(datum, io.BinaryEncoder(out))
 
-    for id, p in zip(uuids, datum.itervalues()):
+    for id, p in zip(uuids, iter(datum.values())):
         if id: p['uuid'] = id
 
     return out.getvalue()
@@ -168,9 +168,9 @@ def load_report(data):
     dreader = io.DatumReader(writers_schema=REPORT_SCHEMA, 
                              readers_schema=REPORT_SCHEMA)
     v = dreader.read(io.BinaryDecoder(input))
-    map(stringify_uuids, v.itervalues())
+    list(map(stringify_uuids, iter(v.values())))
     remove_none(v)
-    print v
+    print(v)
     return v
 
 

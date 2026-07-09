@@ -31,8 +31,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 import os
-import urllib2
-import urlparse
+import urllib.request, urllib.error, urllib.parse
+import urllib.parse
 from binascii import hexlify
 import hashlib
 import json
@@ -41,7 +41,7 @@ try:
 except ImportError:
     bs = None
 
-urllib2.install_opener(urllib2.build_opener())
+urllib.request.install_opener(urllib.request.build_opener())
 
 CACHEDIR='cache'
 
@@ -60,15 +60,15 @@ def load_http(url, cache=False, auth=None, data=None, as_fp=False, verbose=False
     else: 
         try:
             if auth != None:
-                mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
-                url_p = urlparse.urlparse(url)
+                mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
+                url_p = urllib.parse.urlparse(url)
                 mgr.add_password(None, url_p.netloc, auth[0], auth[1])
-                handler = urllib2.HTTPBasicAuthHandler(mgr)
-                opener = urllib2.build_opener(handler)
-                req = urllib2.Request(url, data=data)
+                handler = urllib.request.HTTPBasicAuthHandler(mgr)
+                opener = urllib.request.build_opener(handler)
+                req = urllib.request.Request(url, data=data)
                 pagefp = opener.open(req, timeout=15)
             else:
-                pagefp = urllib2.urlopen(url, timeout=10) 
+                pagefp = urllib.request.urlopen(url, timeout=10) 
 
             if as_fp:
                 return pagefp
@@ -76,8 +76,8 @@ def load_http(url, cache=False, auth=None, data=None, as_fp=False, verbose=False
                 data = pagefp.read()
                 pagefp.close();
                 return data
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
             return None
 
         if cache and not data:
@@ -93,5 +93,5 @@ def load_html(url, **kwargs):
 
 def get(urls, **kwargs):
     parser = kwargs.pop('parser', json.loads)
-    v = map(lambda x: load_http(x, **kwargs), urls)
-    return zip(urls, map(parser, v))
+    v = [load_http(x, **kwargs) for x in urls]
+    return list(zip(urls, list(map(parser, v))))

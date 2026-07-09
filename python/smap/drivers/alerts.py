@@ -44,6 +44,6 @@ class Alert(SmapDriver):
 
   def alert(self, uuid):
     message = '\nGap of more than %s seconds in data for %s: uuid=%s' % (self.limit, self.restrict, uuid)
-    print message
+    print(message)
     self.server.sendmail(self.email, "%s@%s" % (self.recipient, self.carrier), message)
     self.process.stop()

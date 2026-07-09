@@ -43,8 +43,8 @@ from smap.contrib import dtutil
 NEWLINE = '\r\n'
 
 # properties not to add as metadata
-PROP_FILTER_LIST = [u"Item Timestamp",
-                    u"Item Value"]
+PROP_FILTER_LIST = ["Item Timestamp",
+                    "Item Value"]
 def exclude(key):
     for exclude in PROP_FILTER_LIST:
        if key.find(exclude) >= 0: return True
@@ -61,7 +61,7 @@ class OpcProcessProtocol(protocol.ProcessProtocol):
         self.forever = forever
         
     def connectionMade(self):
-        for point in self.opc_driver.points.iterkeys():
+        for point in self.opc_driver.points.keys():
             self.transport.write(point + NEWLINE)
         self.transport.closeStdin()
 
@@ -74,7 +74,7 @@ class OpcProcessProtocol(protocol.ProcessProtocol):
             if len(vals) == 4:
                 self.deliver(vals)
             else:
-                print "bad data", self.data[:idx]
+                print("bad data", self.data[:idx])
                 # self.transport.signalProcess('KILL')
             self.data = self.data[idx+len(NEWLINE):]
 
@@ -103,7 +103,7 @@ class Driver(SmapDriver):
         if opts.get('OpcPointFile', None):
             with open(opts.get('OpcPointFile'), 'r') as fp:
                 self.points = self.parse_pointfile(fp)
-        print self.points.keys()
+        print(list(self.points.keys()))
 
     def start(self):
         d = self.read_properties()
@@ -138,7 +138,7 @@ class Driver(SmapDriver):
                 '-o', 'csv',
                 '-g', str(self.opc_group_size),
                 '-p', '-']
-        print "reading properties"
+        print("reading properties")
         properties = []
         d = defer.Deferred()
         def append_prop(dat):
@@ -160,7 +160,7 @@ class Driver(SmapDriver):
                 '-g', str(self.opc_group_size), #  tags per transaction
                 '-L', str(self.rate),
                 '-']
-        print "starting updater", args
+        print("starting updater", args)
 
         rec = OpcProcessProtocol(self, self._update, self._done)
         reactor.spawnProcess(rec, self.opc_cmd, args, {})
@@ -169,11 +169,11 @@ class Driver(SmapDriver):
     def add_properties(self, props):
         #print "attempting OPC connection to", self.opc_name
         #props = self.opc.properties(self.points.keys())
-        print "loaded", len(props), "properties"
+        print("loaded", len(props), "properties")
         points = {}
         for point, pid, key, val in props:
             name = self.make_path(point)
-            print name
+            print(name)
             if not point in self.points:
                 continue
             if not name in points:
@@ -182,7 +182,7 @@ class Driver(SmapDriver):
                 points[name]['OpcDA/' + key] = str(val)
 
         # try to make some sense out of the metadata
-        for name, meta in points.iteritems():
+        for name, meta in points.items():
             unit = str(meta.get('OpcDA/' + self.unit_tag, 'None'))
             dtype = meta.get('OpcDA/' + self.opc_datatype, None)
             if not dtype:
@@ -194,14 +194,14 @@ class Driver(SmapDriver):
             elif dtype.startswith('VT_U') or dtype.startswith('VT_I'):
                 dtype = 'long'
             else:
-                print "skipping", name, "since cannot find data type"
+                print("skipping", name, "since cannot find data type")
                 continue
             if not self.get_timeseries(name):
                 self.add_timeseries(name, unit, data_type=dtype)
                 self.set_metadata(name, meta)
 
     def _update(self, val):
-        print "update using", val
+        print("update using", val)
         try:
             point, value, quality, time = val
             if quality != 'Good':
@@ -228,5 +228,5 @@ class Driver(SmapDriver):
             log.err()
 
     def _done(self):
-        print "done; stopping reactor.  received exception?"
+        print("done; stopping reactor.  received exception?")
         reactor.stop()

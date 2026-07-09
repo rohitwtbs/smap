@@ -31,14 +31,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 import time
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import datetime
 import re
 from smap.contrib import dtutil
 
 from smap.drivers.scraper import ScraperDriver
 
-urllib2.install_opener(urllib2.build_opener())
+urllib.request.install_opener(urllib.request.build_opener())
 
 class IsoNEDriver(ScraperDriver):
     """Periodically scrape data from ISO-NE and publish it as sMAP feeds
@@ -69,10 +69,10 @@ class IsoNEDriver(ScraperDriver):
 
     def five_min_load(self):
         try:
-            dat = urllib2.urlopen(self.urlgen('http://www.iso-ne.com/histRpts/'
+            dat = urllib.request.urlopen(self.urlgen('http://www.iso-ne.com/histRpts/'
                                 '5min-demand/demand_5min_', '.csv', 0))
         except:
-            dat = urllib2.urlopen(self.urlgen('http://www.iso-ne.com/histRpts/'
+            dat = urllib.request.urlopen(self.urlgen('http://www.iso-ne.com/histRpts/'
                                 '5min-demand/demand_5min_', '.csv', -1))
         lines = dat.readlines()
         dat.close()
@@ -85,10 +85,10 @@ class IsoNEDriver(ScraperDriver):
 
     def zone_lmp(self):
         try:
-            dat = urllib2.urlopen(self.urlgen('http://www.iso-ne.com/histRpts/'
+            dat = urllib.request.urlopen(self.urlgen('http://www.iso-ne.com/histRpts/'
                                         'rolling-dart/da_rt_lmp_', '.csv', 0))
         except:
-            dat = urllib2.urlopen(self.urlgen('http://www.iso-ne.com/histRpts/'
+            dat = urllib.request.urlopen(self.urlgen('http://www.iso-ne.com/histRpts/'
                                         'rolling-dart/da_rt_lmp_', '.csv', -1))
 
         lines = dat.readlines()
@@ -101,7 +101,7 @@ class IsoNEDriver(ScraperDriver):
             datime = self.parse_time24(dt, hr, 1)
             place = (line[4] + " " + line[5]).replace('"', '')
             
-            if place not in self.isone_out["LMP"].keys():
+            if place not in list(self.isone_out["LMP"].keys()):
                 self.isone_out["LMP"][place] = {"Forecasted": [], "Forecasted "
                 "Energy Component": [], "Forecasted Congestion Component": [], 
                 "Forecasted Marginal Loss Component": [], "Preliminary Actual": 
@@ -134,10 +134,10 @@ class IsoNEDriver(ScraperDriver):
 
     def da_load(self):
         try:
-            dat = urllib2.urlopen(self.urlgen('http://www.iso-ne.com/histRpts/'
+            dat = urllib.request.urlopen(self.urlgen('http://www.iso-ne.com/histRpts/'
                                         'da-hcd/da_demand_', '.csv', 1))
         except:
-            dat = urllib2.urlopen(self.urlgen('http://www.iso-ne.com/histRpts/'
+            dat = urllib.request.urlopen(self.urlgen('http://www.iso-ne.com/histRpts/'
                                         'da-hcd/da_demand_', '.csv', 0))
         lines = dat.readlines()
         dat.close()
@@ -151,10 +151,10 @@ class IsoNEDriver(ScraperDriver):
 
     def finalzone_lmp(self):
         try:
-            dat = urllib2.urlopen(self.urlgen('http://www.iso-ne.com/histRpts/'
+            dat = urllib.request.urlopen(self.urlgen('http://www.iso-ne.com/histRpts/'
                                            'rt-lmp/lmp_rt_final_', '.csv', -1))
         except:
-            dat = urllib2.urlopen(self.urlgen('http://www.iso-ne.com/histRpts/'
+            dat = urllib.request.urlopen(self.urlgen('http://www.iso-ne.com/histRpts/'
                                            'rt-lmp/lmp_rt_final_', '.csv', -2))
 
         lines = dat.readlines()
@@ -167,7 +167,7 @@ class IsoNEDriver(ScraperDriver):
             datime = self.parse_time24(dt, hr, 1)
             place = (line[4] + " " + line[5]).replace('"', '')
             
-            if "Final Actual" not in self.isone_out["LMP"][place].keys():
+            if "Final Actual" not in list(self.isone_out["LMP"][place].keys()):
                 self.isone_out["LMP"][place]["Final Actual"] = []
                 self.isone_out["LMP"][place]["Final Actual Energy "
                                                             "Component"] = []
@@ -248,9 +248,9 @@ class IsoNEDriver(ScraperDriver):
         self.update_frequency = 300
         scraped = self.scrape()
         namer = self.namer
-        for data_type in scraped.keys():
-            for location in scraped[data_type].keys():
-                for valtype in scraped[data_type][location].keys():
+        for data_type in list(scraped.keys()):
+            for location in list(scraped[data_type].keys()):
+                for valtype in list(scraped[data_type][location].keys()):
                     path = "/" + data_type + "/" + location + "/" + valtype
                     temp = self.add_timeseries(path, "ISO-NE" + data_type + 
                                 location + valtype,

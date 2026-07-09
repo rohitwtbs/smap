@@ -148,13 +148,13 @@ def t_NUMBER(t):
         try:
             t.value = float(t.value)
         except ValueError:
-            print "Invalid floating point number", t.value
+            print("Invalid floating point number", t.value)
             t.value = 0
     else:
         try:
             t.value = int(t.value)
         except ValueError:
-            print "Integer value too large %d", t.value
+            print("Integer value too large %d", t.value)
             t.value = 0
         
     return t
@@ -166,7 +166,7 @@ def t_newline(t):
     t.lexer.lineno += t.value.count("\n")
 
 def t_error(t):
-    print("Illegal character '%s'" % t.value[0])
+    print(("Illegal character '%s'" % t.value[0]))
     t.lexer.skip(1)
 
 smapql_lex = lex.lex()
@@ -179,20 +179,20 @@ names = {}
 ##  result for presentation to the client.
 
 def ext_default(x):
-    return map(operator.itemgetter(0), x)
+    return list(map(operator.itemgetter(0), x))
 
 def ext_non_null(x):
-    return filter(None, ext_default(x))
+    return [_f for _f in ext_default(x) if _f]
 
 def ext_deletor(x):
-    data.del_streams(map(operator.itemgetter(0), x))
-    return map(operator.itemgetter(1), x)
+    data.del_streams(list(map(operator.itemgetter(0), x)))
+    return list(map(operator.itemgetter(1), x))
 
 def ext_tag_deletor(x):
-    return map(operator.itemgetter(1), x)
+    return list(map(operator.itemgetter(1), x))
 
 def ext_plural(tags, vals):
-    return [build_recursive(dict(zip(tags, v)), suppress=[]) for v in vals]
+    return [build_recursive(dict(list(zip(tags, v))), suppress=[]) for v in vals]
 
 def ext_recursive(vals):
     return [build_recursive(x[0], suppress=[]) for x in vals]
@@ -203,7 +203,7 @@ def ext_set(tag_list, x):
     Returns time series uuid and modified tags
     """
     rv = [{'uuid': v[0]} for v in x]
-    for rv_i, v in itertools.izip(rv, x):
+    for rv_i, v in zip(rv, x):
         rv_i.update(v[1])
     return [build_recursive(x, suppress=[]) for x in rv]
         
@@ -240,16 +240,14 @@ def build_setstring(setvals, wherevals):
                 raise qg.QueryException("Too many regexes in set.  Only one supported!")
 
     if regex == None:
-        new_tags = ' || '.join(map(lambda (t,v): "hstore(%s, %s)" % 
-                                   (escape_string(t), escape_string(v)),
-                                   setvals))
+        new_tags = ' || '.join(["hstore(%s, %s)" % 
+                                   (escape_string(t_v[0]), escape_string(t_v[1])) for t_v in setvals])
     else:
-        new_tags = ' || '.join(map(lambda (t,v): "hstore(%s, regexp_replace(metadata -> %s, '^.*%s.*$', %s))" % 
-                                   (escape_string(t), 
+        new_tags = ' || '.join(["hstore(%s, regexp_replace(metadata -> %s, '^.*%s.*$', %s))" % 
+                                   (escape_string(t_v1[0]), 
                                     regex.args[0],
                                     regex.args[1][1:-1].replace('\\\\', '\\'),
-                                    escape_string(v).replace('\\\\', '\\')),
-                                   setvals))
+                                    escape_string(t_v1[1]).replace('\\\\', '\\')) for t_v1 in setvals])
         regex_tag = regex.args[0][1:-1]
 
     return new_tags, regex_tag
@@ -912,7 +910,7 @@ class QueryParser:
         logging.getLogger("queries.sql").info(q[1])
 
         if verbose:
-            print q[1]
+            print(q[1])
         if not run: return defer.succeed([])
         
         deferreds = []
@@ -949,8 +947,8 @@ if __name__ == '__main__':
     import traceback
     import sys
     import pprint
-    import settings as s
-    import data
+    from . import settings as s
+    from . import data
     import atexit
     from twisted.internet import reactor
     from twisted.enterprise import adbapi
@@ -1007,7 +1005,7 @@ if __name__ == '__main__':
             try:
                 pprint.pprint(json.loads(data))
             except:
-                print data
+                print(data)
 
         def finish(self):
             pass
@@ -1029,7 +1027,7 @@ if __name__ == '__main__':
 
     def readquery():
         try:
-            s = raw_input('query > ')   # Use raw_input on Python 2
+            s = input('query > ')   # Use raw_input on Python 2
             if s == '': 
                 return readquery()
         except EOFError:
