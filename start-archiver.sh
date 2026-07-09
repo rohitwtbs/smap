@@ -21,4 +21,5 @@ module = readingdb
 EOF
 
 export PYTHONPATH="$PWD/python"
+exec > >(tee /tmp/archiver.log) 2>&1
 exec python3 -W ignore .pythonlibs/bin/twistd -n --pidfile= smap-archiver "$CONF"

@@ -31,7 +31,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 import copy
+import json
 import os
+import re
 
 from twisted.internet import reactor, defer
 from twisted.web import resource, server, static
@@ -115,6 +117,67 @@ class DataResource(resource.Resource):
         d.addErrback(add_error)
         return server.NOT_DONE_YET
 
+class LogsResource(resource.Resource):
+    """Serve the tail of the archiver/driver log files as JSON, for the
+    dashboard log viewer.  GET /logs?name=archiver|driver&lines=N
+    """
+    isLeaf = True
+    LOG_FILES = {
+        'archiver': '/tmp/archiver.log',
+        'driver': '/tmp/driver.log',
+        }
+    MAX_READ = 256 * 1024
+
+    # patterns whose matches are redacted before lines leave the server,
+    # so the public dashboard never exposes API keys or credentials.
+    REDACTIONS = [
+        # API-key-bearing URL paths: /add/<key>
+        (re.compile(r'(/add/)[^\s"\'/?#]+'), r'\1<redacted>'),
+        # key=value style credentials
+        (re.compile(r'((?:password|passwd|secret|token|apikey|api_key|key)'
+                    r'\s*[=:]\s*)\S+', re.IGNORECASE), r'\1<redacted>'),
+        ]
+
+    @classmethod
+    def redact(cls, line):
+        for pat, repl in cls.REDACTIONS:
+            line = pat.sub(repl, line)
+        return line
+
+    def render_GET(self, request):
+        request.setHeader(b'Content-Type', b'application/json')
+        # smap.compat decodes request.args keys/values to str
+        name = request.args.get('name', ['archiver'])[0]
+        try:
+            nlines = int(request.args.get('lines', ['200'])[0])
+        except (ValueError, TypeError):
+            nlines = 200
+        nlines = max(1, min(nlines, 1000))
+
+        path = self.LOG_FILES.get(name)
+        if path is None:
+            request.setResponseCode(404)
+            return json.dumps({'error': 'unknown log: ' + name}).encode('utf-8')
+        if not os.path.exists(path):
+            return json.dumps({'name': name, 'lines': [],
+                               'note': 'log file not found (has the '
+                                       'process been started?)'}).encode('utf-8')
+        try:
+            with open(path, 'rb') as fp:
+                fp.seek(0, os.SEEK_END)
+                size = fp.tell()
+                fp.seek(max(0, size - self.MAX_READ))
+                chunk = fp.read()
+        except IOError as e:
+            request.setResponseCode(500)
+            return json.dumps({'error': str(e)}).encode('utf-8')
+        text = chunk.decode('utf-8', 'replace')
+        lines = text.splitlines()
+        if size > self.MAX_READ and lines:
+            lines = lines[1:]        # first line probably truncated
+        lines = [self.redact(l) for l in lines[-nlines:]]
+        return json.dumps({'name': name, 'lines': lines}).encode('utf-8')
+
 def getSite(db, 
             resources=['add', 'api', 'republish', 'wsrepublish', 'static'],
             http_repub=None, websocket_repub=None, mongo_repub=None, pg_repub=None):
@@ -147,6 +210,9 @@ def getSite(db,
         root.putChild(b'api', api.Api(db))
     if 'static' in resources:
         root.putChild(b'static', static.File('static'))
+
+    # log tail endpoint for the dashboard
+    root.putChild(b'logs', LogsResource())
 
     # serve the dashboard on the base page
     dashboard_path = os.path.join(os.path.dirname(__file__),
