@@ -36,6 +36,7 @@ from smap.contrib import dtutil
 from twisted.internet import threads
 from twisted.python import log
 import logging
+import random
 
 class Driver(SmapDriver):
     def setup(self, opts):
@@ -51,8 +52,7 @@ class Driver(SmapDriver):
         periodicSequentialCall(self.read).start(self.rate)
 
     def read(self):
-        self.add('/sensor0', self.counter)
-        self.counter += 1
+        self.add('/sensor0', random.choice([1, 0, -1]))
 
     def load(self, st, et, cache=None):
         d = threads.deferToThread(self.load_data, st, et)
