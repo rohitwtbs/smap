@@ -85,6 +85,8 @@ class GzipJson(StaticProducer):
 
     def __init__(self, value):
         value = dumps(value)
+        if isinstance(value, str):
+            value = value.encode('utf-8')
         self._value = zlib.compress(value)
         print("%i -> %i" % (len(value), len(self._value)))
         self.length = len(self._value)
@@ -115,7 +117,7 @@ class AsyncSmapToCsv(AsyncFormatter):
             self._consumer.write('\n'.join((AsyncSmapToCsv._format_point(path, 
                                                                          str(val['uuid']), 
                                                                          p) 
-                                            for p in val['Readings'])))
+                                            for p in val['Readings'])).encode('utf-8'))
             yield None
 
 __FORMATTERS__ = {

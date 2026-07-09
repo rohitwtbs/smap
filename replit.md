@@ -15,6 +15,9 @@ The sMAP (Simple Measurement and Actuation Profile) archiver — a legacy Python
 - Data ingestion: `POST /add/mykey` with sMAP JSON report objects.
 - Queries: `POST /api/query` with sMAP query language (e.g. `select *`, `select data in (t1, t2) where uuid = '...'`).
 
+## Sample Driver
+- `./start-example-driver.sh` runs `smap.drivers.example.Driver` (config in `example-driver.ini`), which publishes an incrementing counter once per second to the archiver at `/add/mykey`. Verify with: `curl -XPOST -d "select data before now limit 5 where Metadata/SourceName = 'Example Driver'" localhost:5000/api/query`
+
 ## Key Files
 - `start-archiver.sh` — startup script
 - `python/smap/archiver/` — archiver server, API, query parser

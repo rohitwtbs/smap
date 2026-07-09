@@ -383,7 +383,9 @@ class HttpReportInstance(dict):
             headers = {'Content-type' : [formatter.content_type]}
             if formatter.content_encoding:
                 headers['Content-encoding'] = [formatter.content_encoding]
-            d = agent.request('POST',
+            if isinstance(dest_url, str):
+                dest_url = dest_url.encode('utf-8')
+            d = agent.request(b'POST',
                               dest_url,
                               Headers(headers),
                               formatter(data))

@@ -110,6 +110,8 @@ class AsyncJSON(object):
 
     def _produce(self):
         for chunk in self._iterable:
+            if isinstance(chunk, str):
+                chunk = chunk.encode('utf-8')
             self._consumer.write(chunk)
             yield None
 

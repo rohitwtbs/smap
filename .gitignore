@@ -19,3 +19,7 @@ Thumbs.db
 # python virtualenv
 venv
 python/build
+
+# sMAP driver runtime state (report buffers)
+python/*-reports/
+python/c3ca3cf0-34c8-11e1-9bca-030e8139310d
