@@ -215,11 +215,19 @@ def getSite(db,
     # log tail endpoint for the dashboard
     root.putChild(b'logs', LogsResource())
 
-    # serve the dashboard on the base page
+    # serve the dashboard on the base page (no-cache so browsers always
+    # pick up dashboard changes on refresh)
     dashboard_path = os.path.join(os.path.dirname(__file__),
                                   'static', 'dashboard.html')
     if os.path.exists(dashboard_path):
-        root.putChild(b'', static.File(dashboard_path,
-                                       defaultType='text/html'))
+        class DashboardFile(static.File):
+            def render_GET(self, request):
+                request.setHeader(b'Cache-Control',
+                                  b'no-cache, no-store, must-revalidate')
+                request.setHeader(b'Pragma', b'no-cache')
+                request.setHeader(b'Expires', b'0')
+                return static.File.render_GET(self, request)
+        root.putChild(b'', DashboardFile(dashboard_path,
+                                         defaultType='text/html'))
     return server.Site(root)
 
