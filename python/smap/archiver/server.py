@@ -125,6 +125,7 @@ class LogsResource(resource.Resource):
     LOG_FILES = {
         'archiver': '/tmp/archiver.log',
         'driver': '/tmp/driver.log',
+        'goparser': '/tmp/goparser.log',
         }
     MAX_READ = 256 * 1024
 

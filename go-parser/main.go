@@ -5,6 +5,7 @@ import (
         "log"
         "net/http"
         "os"
+        "time"
 )
 
 type parseRequest struct {
@@ -26,17 +27,21 @@ func handleParse(w http.ResponseWriter, r *http.Request) {
                 return
         }
         auth := AuthContext{Keys: req.Key, Private: req.Private}
+        start := time.Now()
         p, err := NewParser(req.Query, auth)
         var res *ParseResult
         if err == nil {
                 res, err = p.Parse()
         }
+        elapsed := time.Since(start)
         w.Header().Set("Content-Type", "application/json")
         if err != nil {
+                log.Printf("parse error (%s): %s | query: %s", elapsed, err.Error(), req.Query)
                 w.WriteHeader(http.StatusBadRequest)
                 json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
                 return
         }
+        log.Printf("parsed kind=%s (%s) | query: %s", res.Kind, elapsed, req.Query)
         json.NewEncoder(w).Encode(res)
 }
 
