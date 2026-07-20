@@ -1,1 +1,2 @@
 - [sMAP Python 3 port](smap-py3-port.md) — str/bytes boundary is patched centrally in smap/compat.py; psycopg2 getquoted() returns bytes; smoke-test recipe for archiver on port 5000.
+- [sMAP QL parity quirks](smap-ql-parity.md) — inverted OR/AND precedence, second-flooring timestamps, set-order nondeterminism; must-read before touching the Go parser or query path.

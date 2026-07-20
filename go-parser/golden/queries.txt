@@ -1,0 +1,53 @@
+# Golden corpus: one query per line; lines starting with # are comments.
+# -- basic selects
+select *
+select * where has uuid
+select uuid
+select uuid, Path
+select Path
+select Path, Metadata/SourceName
+select Metadata/SourceName, Metadata/Instrument/Model, Path
+select distinct
+select distinct uuid
+select distinct Path
+select distinct Metadata/SourceName
+# -- where clauses
+select * where Metadata/SourceName = 'Example Driver'
+select * where Metadata/SourceName like 'Ex%'
+select * where Metadata/SourceName ~ '^Ex.*'
+select * where has Metadata/Instrument/Model
+select * where contains 'counter'
+select * where uuid = 'ebae53f6-97e6-11e6-9a2c-0cc47a0f7eea'
+select * where uuid like 'ebae%'
+select * where uuid ~ '^ebae'
+select * where has uuid
+select * where not has Metadata/Extra/Test
+select * where Metadata/SourceName = 'A' and Path = '/sensor0'
+select * where Metadata/SourceName = 'A' or Path = '/sensor0'
+select * where Metadata/SourceName = 'A' and Path = '/sensor0' or Path = '/sensor1'
+select * where Metadata/SourceName = 'A' or Path = '/sensor0' and Path = '/sensor1'
+select * where not Metadata/SourceName = 'A' and Path = '/b'
+select * where (Metadata/SourceName = 'A' or Path = '/s0') and has Metadata/Extra
+select * where not (has Metadata/Extra or Path like '/x%')
+select Path where Metadata/SourceName = 'it\'s a "test"'
+select Path where Metadata/SourceName = 'back\slash'
+select uuid, Path, Metadata/SourceName where has Path and not uuid = 'x'
+# -- data queries
+select data in (1783371600000, 1783375200000) where has uuid
+select data in 1783371600000, 1783375200000 limit 100 where has uuid
+select data in (1783371600000, 1783375200000) limit -1 where Metadata/SourceName = 'Example Driver'
+select data in (1783371600000, 1783375200000) limit 10 streamlimit 5 where has uuid
+select data in (1783371600000, 1783375200000) streamlimit 7 where has uuid
+select data before 1783371600000 where has uuid
+select data after 1783371600000 limit 3 where uuid = 'abc'
+select data in ('7/1/2026', '7/2/2026') where has uuid
+select data in ('7/1/2026 10:30', '2026-07-02T08:15:30') where has uuid
+select data before now where Metadata/SourceName = 'Example Driver'
+select data in (now -1days, now) where has uuid
+select data in (now -2h +30m, now -1m -30s) limit 500 where has uuid
+select data before 1783371600500 where has uuid
+# -- apply (compared on tag/data SQL only)
+apply window(first, field='minute') to data in (1783371600000, 1783375200000) where has uuid
+apply min to data in (1783371600000, 1783375200000) where Metadata/SourceName = 'A' group by Metadata/SourceName
+apply min < max to data before now where has uuid
+apply units to data in (1783371600000, 1783375200000) where Metadata/SourceName = 'A' and has Path

@@ -1,4 +1,4 @@
-modules = ["python-3.12", "java-graalvm22.3"]
+modules = ["python-3.12", "java-graalvm22.3", "go-1.25"]
 [agent]
 expertMode = true
 stack = "BEST_EFFORT_FALLBACK"
@@ -18,6 +18,10 @@ externalPort = 80
 localPort = 8080
 externalPort = 8080
 
+[[ports]]
+localPort = 9000
+externalPort = 9000
+
 [workflows]
 runButton = "Project"
 
@@ -33,6 +37,10 @@ args = "sMAP Archiver"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "Example Driver"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Go Query Parser"
 
 [[workflows.workflow]]
 name = "sMAP Archiver"
@@ -57,3 +65,15 @@ waitForPort = 8080
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow]]
+name = "Go Query Parser"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./go-parser/start-go-parser.sh"
+waitForPort = 9000

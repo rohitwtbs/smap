@@ -40,7 +40,7 @@ import collections
 import itertools
 import re
 
-from twisted.internet import defer
+from twisted.internet import defer, threads
 from twisted.python import log
 
 from smap import operators
@@ -900,9 +900,68 @@ class QueryParser:
     def parse(self, s):
         return self.parser.parse(s, lexer=smapql_lex)
 
+    def try_go_parse(self, s):
+        """Attempt to parse the query with the Go sidecar service.
+
+        Returns an (ext, q) pair compatible with self.parse(), or
+        None if the Go parser is disabled, unreachable, or does not
+        handle this query kind (in which case the caller falls back
+        to the PLY parser)."""
+        try:
+            request = self.parser.request
+            keys = request.args.get('key', [])
+            private = 'private' in request.args
+            from smap.archiver import goparse
+            r = goparse.parse_remote(s, keys, private)
+            kind = r.get('kind')
+            if kind == 'select':
+                extract = r['extract']
+                if extract['type'] == 'recursive':
+                    return ext_recursive, r['sql']
+                if extract['type'] == 'nonnull':
+                    return ext_non_null, r['sql']
+                if extract['type'] == 'plural':
+                    tags = extract['tags']
+                    return (lambda vals: ext_plural(tags, vals)), r['sql']
+                return None
+            if kind == 'data':
+                ds = r['dataSpec']
+                request.args.update({
+                    'starttime': [ds['start']],
+                    'endtime': [ds['end']],
+                    'limit': [ds['limit']],
+                    'streamlimit': [ds['streamlimit']],
+                    })
+                ext = lambda streams: data.data_load_result(request,
+                                                            ds['method'],
+                                                            streams,
+                                                            ndarray=False,
+                                                            as_smapobj=True,
+                                                            send=True)
+                return ext, r['sql']
+            # apply/delete/set/help and anything unknown: use PLY
+            return None
+        except Exception:
+            logging.getLogger('goparse').info(
+                "go parser unavailable, falling back to PLY", exc_info=True)
+            return None
+
     def runquery(self, db, s, run=True, verbose=False):
         logging.getLogger("queries.aql").info(s)
-        ext, q = self.parse(s)
+        from smap.archiver import goparse
+        if goparse.enabled() and goparse.available():
+            # parse_remote does blocking I/O, so run it off the
+            # reactor thread and continue once it resolves.
+            d = threads.deferToThread(self.try_go_parse, s)
+            d.addCallback(self._runquery_parsed, db, s, run, verbose)
+            return d
+        return self._runquery_parsed(None, db, s, run, verbose)
+
+    def _runquery_parsed(self, parsed, db, s, run=True, verbose=False):
+        if parsed is not None:
+            ext, q = parsed
+        else:
+            ext, q = self.parse(s)
         if is_string(ext):
             return defer.succeed(ext)
         elif not isinstance(q, list):
